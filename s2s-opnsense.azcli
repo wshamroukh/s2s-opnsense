@@ -178,6 +178,8 @@ echo -e "\e[1;33mTo setup IPSec S2S VPN between the two opnsense firewalls, foll
 echo -e "\e[1;33mWhile setting up phase 1 proposal(Authentication) on $site1_vnet_name-gw, make sure you put the public ip address of $site1_vnet_name-gw ($site1_gw_pubip) as 'My identifier - IP address' and public ip address of $site2_vnet_name-gw ($site2_gw_pubip) as 'Peer identifier - IP address'\e[0m"
 echo -e "\e[1;33mWhile setting up phase 1 proposal(Authentication) on $site2_vnet_name-gw, make sure you put the public ip address of $site2_vnet_name-gw ($site2_gw_pubip) as 'My identifier - IP address' and public ip address of $site1_vnet_name-gw ($site1_gw_pubip) as 'Peer identifier - IP address'\e[0m"
 
+echo -e "\e[1;33mTo setup IPSec S2S VPN (VTI - Route based) between the two opnsense firewalls, follow this article: https://docs.opnsense.org/manual/how-tos/ipsec-s2s-conn-route.html\e[0m"
+
 # clean up files
 rm $cloud_init_file $config_file
 #cleanup
