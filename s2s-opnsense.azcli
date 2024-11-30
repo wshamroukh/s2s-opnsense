@@ -1,0 +1,184 @@
+rg=s2s-ipsec-opnsense
+location=centralindia
+
+site1_vnet_name=site1
+site1_vnet_address=10.1.0.0/16
+site1_gw_subnet_name=gw
+site1_gw_subnet_address=10.1.0.0/24
+site1_gw_asn=65501
+site1_gw_vti0=10.1.0.250
+site1_vm_subnet_name=vm
+site1_vm_subnet_address=10.1.1.0/24
+
+site2_vnet_name=site2
+site2_vnet_address=10.2.0.0/16
+site2_gw_subnet_name=gw
+site2_gw_subnet_address=10.2.0.0/24
+site2_gw_asn=65502
+site2_gw_vti0=10.2.0.250
+site2_vm_subnet_name=vm
+site2_vm_subnet_address=10.2.1.0/24
+
+
+admin_username=$(whoami)
+admin_password='Test#123#123'
+myip=$(curl -s4 https://ifconfig.co/)
+vm_size=Standard_B2als_v2
+fw_vm_image=$(az vm image list -l $location -p thefreebsdfoundation --sku 14_1-release-zfs --all --query "[?offer=='freebsd-14_1'].urn" -o tsv | sort -u | tail -n 1) && echo $hub1_fw_vm_image
+az vm image terms accept --urn $fw_vm_image -o none
+vm_image=$(az vm image list -l $location -p Canonical -s 22_04-lts --all --query "[?offer=='0001-com-ubuntu-server-jammy'].urn" -o tsv | sort -u | tail -n 1) && echo $vm_image
+
+cloud_init_file=~/cloud_init.sh
+cat <<EOF > $cloud_init_file
+#!/usr/local/bin/bash
+echo $admin_password | sudo -S pkg update
+sudo pkg upgrade -y
+sed 's/#PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config > /tmp/sshd_config
+sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config_tmp
+sudo mv /tmp/sshd_config /etc/ssh/sshd_config
+sudo /etc/rc.d/sshd restart
+echo -e "$admin_password\n$admin_password" | sudo passwd root
+fetch https://raw.githubusercontent.com/opnsense/update/master/src/bootstrap/opnsense-bootstrap.sh.in
+sed 's/reboot/#reboot/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
+mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
+sed 's/set -e/#set -e/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
+mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
+sudo chmod +x opnsense-bootstrap.sh.in
+sudo sh ~/opnsense-bootstrap.sh.in -y -r 24.7
+sudo cp ~/config.xml /usr/local/etc/config.xml
+sudo pkg upgrade
+sudo pkg install -y bash git
+sudo ln -s /usr/local/bin/python3.11 /usr/local/bin/python
+git clone https://github.com/Azure/WALinuxAgent.git
+cd ~/WALinuxAgent/
+git checkout v2.12.0.2
+sudo python setup.py install
+sudo ln -sf /usr/local/sbin/waagent /usr/sbin/waagent
+sudo service waagent start
+sudo service waagent status
+sudo reboot
+EOF
+
+function wait_until_finished {
+     wait_interval=15
+     resource_id=$1
+     resource_name=$(echo $resource_id | cut -d/ -f 9)
+     echo -e "\e[1;35mWaiting for resource $resource_name to finish provisioning...\e[0m"
+     start_time=`date +%s`
+     state=$(az resource show --id $resource_id --query properties.provisioningState -o tsv)
+     until [[ "$state" == "Succeeded" ]] || [[ "$state" == "Failed" ]] || [[ -z "$state" ]]
+     do
+        sleep $wait_interval
+        state=$(az resource show --id $resource_id --query properties.provisioningState -o tsv)
+     done
+     if [[ -z "$state" ]]
+     then
+        echo -e "\e[1;31mSomething really bad happened...\e[0m"
+     else
+        run_time=$(expr `date +%s` - $start_time)
+        ((minutes=${run_time}/60))
+        ((seconds=${run_time}%60))
+        echo -e "\e[1;32mResource $resource_name provisioning state is $state, wait time $minutes minutes and $seconds seconds\e[0m"
+     fi
+}
+
+# Resource Groups
+echo -e "\e[1;36mCreating $rg Resource Group...\e[0m"
+az group create -l $location -n $rg -o none
+
+# site1 vnet
+echo -e "\e[1;36mCreating $site1_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $site1_vnet_name -l $location --address-prefixes $site1_vnet_address --subnet-name $site1_vm_subnet_name --subnet-prefixes $site1_vm_subnet_address -o none
+az network vnet subnet create -g $rg -n $site1_gw_subnet_name --address-prefixes $site1_gw_subnet_address --vnet-name $site1_vnet_name -o none
+
+# site2 vnet
+echo -e "\e[1;36mCreating $site2_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $site2_vnet_name -l $location --address-prefixes $site2_vnet_address --subnet-name $site2_vm_subnet_name --subnet-prefixes $site2_vm_subnet_address -o none
+az network vnet subnet create -g $rg -n $site2_gw_subnet_name --address-prefixes $site2_gw_subnet_address --vnet-name $site2_vnet_name -o none
+
+# site1 gw vm
+echo -e "\e[1;36mDeploying $site1_vnet_name-gw VM...\e[0m"
+az network public-ip create -g $rg -n $site1_vnet_name-gw -l $location --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n $site1_vnet_name-gw-wan -l $location --vnet-name $site1_vnet_name --subnet $site1_gw_subnet_name --ip-forwarding true --private-ip-address 10.1.0.250 --public-ip-address $site1_vnet_name-gw -o none
+az network nic create -g $rg -n $site1_vnet_name-gw-lan -l $location --vnet-name $site1_vnet_name --subnet $site1_vm_subnet_name --ip-forwarding true --private-ip-address 10.1.1.250 -o none
+az vm create -g $rg -n $site1_vnet_name-gw -l $location --image $fw_vm_image --nics $site1_vnet_name-gw-wan $site1_vnet_name-gw-lan --os-disk-name $site1_vnet_name-gw --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+# site1 gw details
+site1_gw_pubip=$(az network public-ip show -g $rg -n $site1_vnet_name-gw --query ipAddress -o tsv) && echo $site1_vnet_name-gw public ip: $site1_gw_pubip
+site1_gw_wan_ip=$(az network nic show -g $rg -n $site1_vnet_name-gw-wan --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site1_vnet_name-gw wan ip: $site1_gw_wan_ip
+site1_gw_lan_ip=$(az network nic show -g $rg -n $site1_vnet_name-gw-lan --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site1_vnet_name-gw lan ip: $site1_gw_lan_ip
+
+# site2 gw vm
+echo -e "\e[1;36mDeploying $site2_vnet_name-gw VM...\e[0m"
+az network public-ip create -g $rg -n $site2_vnet_name-gw -l $location --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n $site2_vnet_name-gw-wan -l $location --vnet-name $site2_vnet_name --subnet $site2_gw_subnet_name --ip-forwarding true --private-ip-address 10.2.0.250 --public-ip-address $site2_vnet_name-gw -o none
+az network nic create -g $rg -n $site2_vnet_name-gw-lan -l $location --vnet-name $site2_vnet_name --subnet $site2_vm_subnet_name --ip-forwarding true --private-ip-address 10.2.1.250 -o none
+az vm create -g $rg -n $site2_vnet_name-gw -l $location --image $fw_vm_image --nics $site2_vnet_name-gw-wan $site2_vnet_name-gw-lan --os-disk-name $site2_vnet_name-gw --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+# site2 gw details
+site2_gw_pubip=$(az network public-ip show -g $rg -n $site2_vnet_name-gw --query ipAddress -o tsv) && echo $site2_vnet_name-gw public ip: $site2_gw_pubip
+site2_gw_wan_ip=$(az network nic show -g $rg -n $site2_vnet_name-gw-wan --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site2_vnet_name-gw wan ip: $site2_gw_wan_ip
+site2_gw_lan_ip=$(az network nic show -g $rg -n $site2_vnet_name-gw-lan --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site2_vnet_name-gw lan ip: $site2_gw_lan_ip
+
+# site1 vm
+echo -e "\e[1;36mDeploying $site1_vnet_name VM...\e[0m"
+az network nic create -g $rg -n $site1_vnet_name -l $location --vnet-name $site1_vnet_name --subnet $site1_vm_subnet_name -o none
+az vm create -g $rg -n $site1_vnet_name -l $location --image $vm_image --nics $site1_vnet_name --os-disk-name $site1_vnet_name --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+site1_vm_ip=$(az network nic show -g $rg -n $site1_vnet_name --query ipConfigurations[0].privateIPAddress -o tsv) && echo $site1_vnet_name vm private ip: $site1_vm_ip
+
+# site2 vm
+echo -e "\e[1;36mDeploying $site2_vnet_name VM...\e[0m"
+az network nic create -g $rg -n $site2_vnet_name -l $location --vnet-name $site2_vnet_name --subnet $site2_vm_subnet_name -o none
+az vm create -g $rg -n $site2_vnet_name -l $location --image $vm_image --nics $site2_vnet_name --os-disk-name $site2_vnet_name --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+site2_vm_ip=$(az network nic show -g $rg -n $site2_vnet_name --query ipConfigurations[0].privateIPAddress -o tsv) && echo $site2_vnet_name vm private ip: $site2_vm_ip
+
+
+# site1 route table
+echo -e "\e[1;36mDeploying $site1_vnet_name route table and attaching it to $site1_vm_subnet_name subnet...\e[0m"
+az network route-table create -n $site1_vnet_name -g $rg -l $location -o none
+az network route-table route create --address-prefix $site2_vnet_address -n to-$site2_vnet_name -g $rg --next-hop-type VirtualAppliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_gw_lan_ip -o none
+az network vnet subnet update --vnet-name $site1_vnet_name -n $site1_vm_subnet_name --route-table $site1_vnet_name -g $rg -o none
+
+# site2 route table
+echo -e "\e[1;36mDeploying $site2_vnet_name route table and attaching it to $site2_vm_subnet_name subnet...\e[0m"
+az network route-table create -n $site2_vnet_name -g $rg -l $location -o none
+az network route-table route create --address-prefix $site1_vnet_address -n to-$site1_vnet_name -g $rg --next-hop-type VirtualAppliance --route-table-name $site2_vnet_name --next-hop-ip-address $site2_gw_lan_ip -o none
+az network vnet subnet update --vnet-name $site2_vnet_name -n $site2_vm_subnet_name --route-table $site2_vnet_name -g $rg -o none
+
+site1_gw_id=$(az vm show -n $site1_vnet_name-gw -g $rg --query 'id' -o tsv)
+wait_until_finished $site1_gw_id
+
+# enable vm boot diagnostic on site1 gw
+echo -e "\e[1;36mEnabling VM boot diagnostics...\e[0m"
+az vm boot-diagnostics enable -n $site1_vnet_name-gw -g $rg -o none
+
+# Installing OPNSense on site1 gw
+config_file=~/config.xml
+curl -o $config_file https://raw.githubusercontent.com/wshamroukh/opnsense-azure-vm/refs/heads/main/config.xml
+echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-gw and installing opnsense firewall...\e[0m"
+scp -o StrictHostKeyChecking=no $cloud_init_file $config_file $admin_username@$site1_gw_pubip:/home/$admin_username
+ssh -o StrictHostKeyChecking=no $admin_username@$site1_gw_pubip "chmod +x /home/$admin_username/cloud_init.sh && sh /home/$admin_username/cloud_init.sh"
+
+site2_gw_id=$(az vm show -n $site2_vnet_name-gw -g $rg --query 'id' -o tsv)
+wait_until_finished $site2_gw_id
+
+# enable vm boot diagnostic on site2 gw
+echo -e "\e[1;36mEnabling VM boot diagnostics...\e[0m"
+az vm boot-diagnostics enable -n $site2_vnet_name-gw -g $rg -o none
+
+# Installing OPNSense on site2 gw
+echo -e "\e[1;36mCopying configuration files to $site2_vnet_name-gw and installing opnsense firewall...\e[0m"
+scp -o StrictHostKeyChecking=no $cloud_init_file $config_file $admin_username@$site2_gw_pubip:/home/$admin_username
+ssh -o StrictHostKeyChecking=no $admin_username@$site2_gw_pubip "chmod +x /home/$admin_username/cloud_init.sh && sh /home/$admin_username/cloud_init.sh"
+
+echo -e "\e[1;35mYou can now access $site1_vnet_name-gw via https://$site1_gw_pubip/\e[0m"
+echo -e "\e[1;35mYou can now access $site2_vnet_name-gw via https://$site2_gw_pubip/\e[0m"
+echo -e "\e[1;35mCredentials:\nusername:root\npassword:opnsesne\e[0m"
+echo -e "\e[1;31mIt is highly recommended to change the password as soon as you logn\e[0m"
+
+echo -e "\e[1;33mTo setup IPSec S2S VPN between the two opnsense firewalls, follow this article: https://docs.opnsense.org/manual/how-tos/ipsec-s2s.html\e[0m"
+echo -e "\e[1;33mWhile setting up phase 1 proposal(Authentication) on $site1_vnet_name-gw, make sure you put the public ip address of $site1_vnet_name-gw ($site1_gw_pubip) as 'My identifier - IP address' and public ip address of $site2_vnet_name-gw ($site2_gw_pubip) as 'Peer identifier - IP address'\e[0m"
+echo -e "\e[1;33mWhile setting up phase 1 proposal(Authentication) on $site2_vnet_name-gw, make sure you put the public ip address of $site2_vnet_name-gw ($site2_gw_pubip) as 'My identifier - IP address' and public ip address of $site1_vnet_name-gw ($site1_gw_pubip) as 'Peer identifier - IP address'\e[0m"
+
+# clean up files
+rm $cloud_init_file $config_file
+#cleanup
+# az group delete -g $rg -y --no-wait
