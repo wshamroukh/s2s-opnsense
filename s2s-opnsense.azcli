@@ -132,6 +132,6 @@ config_file=~/config.xml
 curl -o $config_file  https://raw.githubusercontent.com/wshamroukh/azure-site-to-site-s2s-vpn/main/s2s-bgp-nva-hub-spoke/config.xml
 scp -o StrictHostKeyChecking=no $config_file root@$hub1_fw_public_ip:/usr/local/etc/
 az vm restart -g $rg -n $hub1_vnet_name-fw --force
-
+rm $config_file
 # cp ~/.ssh/* /mnt/c/temp
 # az group delete -n $rg -y --no-wait
