@@ -1,6 +1,6 @@
 rg=hub-spoke-opnsense
 location='centralindia'
-vhdUri=https://wadstor01.blob.core.windows.net/opnsense/opnsense.vhd
+vhdUri=https://wadvhds.blob.core.windows.net/vhds/opnsense.vhd
 storageType=Premium_LRS
 hub1_vnet_name='hub1'
 hub1_vnet_address='10.1.0.0/16'
@@ -30,7 +30,7 @@ vm_size=Standard_B2ats_v2
 admin_username=$(whoami)
 admin_password='Test#123#123'
 myip=$(curl -s4 https://ifconfig.co/)
-vm_image=$(az vm image list -l $location -p Canonical -s 22_04-lts --all --query "[?offer=='0001-com-ubuntu-server-jammy'].urn" -o tsv | sort -u | tail -n 1) && echo $vm_image
+
 
 # create resource group
 echo -e "\e[1;36mCreating $rg resource group...\e[0m"
@@ -91,19 +91,19 @@ az network vnet peering create -g $rg -n $spoke3_vnet_name-peering --remote-vnet
 # spoke1 vm
 echo -e "\e[1;36mCreating $spoke1_vnet_name VM...\e[0m"
 az network nic create -g $rg -n "$spoke1_vnet_name" -l $location --vnet-name $spoke1_vnet_name --subnet $spoke1_vm_subnet_name -o none
-az vm create -g $rg -n $spoke1_vnet_name -l $location --image $vm_image --nics "$spoke1_vnet_name" --os-disk-name "$spoke1_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys -o none
+az vm create -g $rg -n $spoke1_vnet_name -l $location --image Ubuntu2404 --nics "$spoke1_vnet_name" --os-disk-name "$spoke1_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys -o none
 spoke1_vm_ip=$(az network nic show -g $rg -n $spoke1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv) && echo $spoke1_vnet_name vm private ip: $spoke1_vm_ip
 
 # spoke2 vm
 echo -e "\e[1;36mCreating $spoke2_vnet_name VM...\e[0m"
 az network nic create -g $rg -n "$spoke2_vnet_name" -l $location --vnet-name $spoke2_vnet_name --subnet $spoke2_vm_subnet_name -o none
-az vm create -g $rg -n $spoke2_vnet_name -l $location --image $vm_image --nics "$spoke2_vnet_name" --os-disk-name "$spoke2_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys -o none
+az vm create -g $rg -n $spoke2_vnet_name -l $location --image Ubuntu2404 --nics "$spoke2_vnet_name" --os-disk-name "$spoke2_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys -o none
 spoke2_vm_ip=$(az network nic show -g $rg -n $spoke2_vnet_name --query ipConfigurations[].privateIPAddress -o tsv) && echo $spoke2_vnet_name vm private ip: $spoke2_vm_ip
 
 # spoke3 vm
 echo -e "\e[1;36mCreating $spoke3_vnet_name VM...\e[0m"
 az network nic create -g $rg -n "$spoke3_vnet_name" -l $location --vnet-name $spoke3_vnet_name --subnet $spoke3_vm_subnet_name -o none
-az vm create -g $rg -n $spoke3_vnet_name -l $location --image $vm_image --nics "$spoke3_vnet_name" --os-disk-name "$spoke3_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys -o none
+az vm create -g $rg -n $spoke3_vnet_name -l $location --image Ubuntu2404 --nics "$spoke3_vnet_name" --os-disk-name "$spoke3_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys -o none
 spoke3_vm_ip=$(az network nic show -g $rg -n $spoke3_vnet_name --query ipConfigurations[].privateIPAddress -o tsv) && echo $spoke3_vnet_name vm private ip: $spoke3_vm_ip
 
 # spoke1 route table
