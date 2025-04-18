@@ -129,7 +129,7 @@ az network vnet subnet update -g $rg -n $spoke3_vm_subnet_name --vnet-name $spok
 # copy config to opnsense
 echo -e "\e[1;36mApplying config.xml to $hub1_vnet_name-fw....\e[0m"
 config_file=~/config.xml
-curl -o $config_file  https://raw.githubusercontent.com/wshamroukh/azure-site-to-site-s2s-vpn/main/s2s-bgp-nva-hub-spoke/config.xml
+curl -o $config_file https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/config.xml
 scp -o StrictHostKeyChecking=no $config_file root@$hub1_fw_public_ip:/usr/local/etc/
 az vm restart -g $rg -n $hub1_vnet_name-fw --force
 rm $config_file
