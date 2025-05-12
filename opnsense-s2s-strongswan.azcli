@@ -276,4 +276,4 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipse
 # clean up config files
 rm $psk_file $ipsec_file $onprem_gw_cloudinit_file
 
-
+# az group delete -n $rg -y --no-wait
