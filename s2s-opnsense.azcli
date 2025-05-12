@@ -103,6 +103,6 @@ az network vnet subnet update -g $rg -n $site2_vm_subnet_name --vnet-name $site2
 # Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s.html but take the following into account:
 # 1. In phase 1, set 'My identifier'/'Peer identifier' to IP address and put the public ip address of each opnsense firewall
 # 2. in phase 2, set the 'local network'/'remote network' to network and put the $site1_vnet_address and $site2_vnet_address
-# 3. In the IPSec firewall rule, set the 'destination' to 'Single host or Network' and put the other site vnet address space
+# 3. In the IPSec firewall rule, set the 'destination' to 'Single host or Network' and put the local site vnet address space
 
 # az group delete -n $rg -y --no-wait

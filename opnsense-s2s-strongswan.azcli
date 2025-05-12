@@ -1,0 +1,279 @@
+rg=opnsense-s2s-strongswan
+location1='centralindia'
+hub1_vnet_name='hub1'
+hub1_vnet_address='10.1.0.0/16'
+hub1_gw_subnet_name='gw'
+hub1_gw_subnet_address='10.1.0.0/24'
+hub1_vm_subnet_name='vm'
+hub1_vm_subnet_address='10.1.1.0/24'
+
+hub1_gw_vm_image=$(az vm image list -l $location1 -p thefreebsdfoundation --sku 14_2-release-zfs --all --query "[?offer=='freebsd-14_2'].urn" -o tsv | tr -d '\r') && echo $hub1_gw_vm_image
+az vm image terms accept --urn $hub1_gw_vm_image -o none
+
+spoke1_vnet_name='spoke1'
+spoke1_vnet_address='10.11.0.0/16'
+spoke1_vm_subnet_name='vm'
+spoke1_vm_subnet_address='10.11.1.0/24'
+
+onprem1_vnet_name='onprem1'
+onprem1_vnet_address='172.21.0.0/16'
+onprem1_vm_subnet_name='vm'
+onprem1_vm_subnet_address='172.21.1.0/24'
+onprem1_gw_subnet_name='gw'
+onprem1_gw_subnet_address='172.21.0.0/24'
+
+default0=0.0.0.0/1
+default1=128.0.0.0/1
+psk='secret12345'
+admin_username=$(whoami)
+admin_password='Test#123#123'
+myip=$(curl -s4 https://ifconfig.co/)
+
+vm_size=Standard_B2ats_v2
+
+opnsense_init_file=opnsense_init.sh
+cat <<EOF > $opnsense_init_file
+#!/usr/local/bin/bash
+echo $admin_password | sudo -S pkg update
+sudo pkg upgrade -y
+sed 's/#PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config > /tmp/sshd_config
+sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config_tmp
+sudo mv /tmp/sshd_config /etc/ssh/sshd_config
+sudo /etc/rc.d/sshd restart
+fetch https://raw.githubusercontent.com/opnsense/update/master/src/bootstrap/opnsense-bootstrap.sh.in
+sed 's/reboot/#reboot/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
+mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
+sed 's/set -e/#set -e/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
+mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
+sudo chmod +x opnsense-bootstrap.sh.in
+sudo sh ~/opnsense-bootstrap.sh.in -y -r 25.1
+sudo cp ~/config.xml /usr/local/etc/config.xml
+sudo pkg upgrade
+sudo pkg install -y bash git py311-setuptools-63.1.0_3
+sudo ln -s /usr/local/bin/python3.11 /usr/local/bin/python
+git -c http.sslVerify=false clone https://github.com/Azure/WALinuxAgent.git
+cd ~/WALinuxAgent/
+git checkout v2.13.1.1
+sudo python setup.py install --register-service --force
+sudo reboot
+EOF
+
+onprem_gw_cloudinit_file=onprem_gw_cloudinit.txt
+cat <<EOF > $onprem_gw_cloudinit_file
+#cloud-config
+runcmd:
+  - curl -s https://deb.frrouting.org/frr/keys.gpg | sudo tee /usr/share/keyrings/frrouting.gpg > /dev/null
+  - echo deb [signed-by=/usr/share/keyrings/frrouting.gpg] https://deb.frrouting.org/frr \$(lsb_release -s -c) frr-stable | sudo tee -a /etc/apt/sources.list.d/frr.list
+  - sudo apt update && sudo apt install -y frr frr-pythontools
+  - sudo apt install -y strongswan inetutils-traceroute net-tools
+  - sudo sed -i "/bgpd=no/ s//bgpd=yes/" /etc/frr/daemons
+  - sudo service frr restart
+  - touch /etc/strongswan.d/ipsec-vti.sh
+  - chmod +x /etc/strongswan.d/ipsec-vti.sh
+  - cp /etc/ipsec.conf /etc/ipsec.conf.bak
+  - cp /etc/ipsec.secrets /etc/ipsec.secrets.bak
+  - echo "net.ipv4.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
+  - echo "net.ipv4.conf.default.forwarding=1" | sudo tee -a /etc/sysctl.conf
+  - sudo sysctl -p
+EOF
+
+function first_ip(){
+    subnet=$1
+    IP=$(echo $subnet | cut -d/ -f 1)
+    IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
+    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 1 ))`)
+    NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
+    echo "$NEXT_IP"
+}
+
+# resource groups
+echo -e "\e[1;36mCreating $rg resource group...\e[0m"
+az group create -l $location1 -n $rg -o none
+
+# hub1
+echo -e "\e[1;36mCreating $hub1_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $hub1_vnet_name -l $location1 --address-prefixes $hub1_vnet_address --subnet-name $hub1_vm_subnet_name --subnet-prefixes $hub1_vm_subnet_address  -o none
+az network vnet subnet create -g $rg -n $hub1_gw_subnet_name --address-prefixes $hub1_gw_subnet_address --vnet-name $hub1_vnet_name -o none
+
+# hub1 gw opnsense vm
+echo -e "\e[1;36mCreating $hub1_vnet_name-gw VM...\e[0m"
+az network public-ip create -g $rg -n "$hub1_vnet_name-gw" -l $location1 --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n "$hub1_vnet_name-gw-wan" --subnet $hub1_gw_subnet_name --vnet-name $hub1_vnet_name --ip-forwarding true --private-ip-address 10.1.0.250 --public-ip-address "$hub1_vnet_name-gw" -o none
+az vm create -g $rg -n $hub1_vnet_name-gw --image $hub1_gw_vm_image --nics "$hub1_vnet_name-gw-wan" --os-disk-name $hub1_vnet_name-gw --size Standard_B2als_v2 --admin-username $admin_username --generate-ssh-keys --no-wait
+# hub1 fw opnsense vm details:
+hub1_gw_public_ip=$(az network public-ip show -g $rg -n "$hub1_vnet_name-gw" --query 'ipAddress' -o tsv | tr -d '\r') && echo $hub1_vnet_name-gw public ip: $hub1_gw_public_ip
+hub1_gw_wan_private_ip=$(az network nic show -g $rg -n $hub1_vnet_name-gw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-gw wan private IP: $hub1_gw_wan_private_ip
+
+# onprem1
+echo -e "\e[1;36mCreating $onprem1_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $onprem1_vnet_name -l $location1 --address-prefixes $onprem1_vnet_address --subnet-name $onprem1_vm_subnet_name --subnet-prefixes $onprem1_vm_subnet_address -o none
+az network vnet subnet create -g $rg -n $onprem1_gw_subnet_name --address-prefixes $onprem1_gw_subnet_address --vnet-name $onprem1_vnet_name -o none
+
+# onprem1-gw vm
+echo -e "\e[1;36mCreating $onprem1_vnet_name-gw VM...\e[0m"
+az network public-ip create -g $rg -n $onprem1_vnet_name-gw -l $location1 --allocation-method static --sku basic -o none
+az network nic create -g $rg -n $onprem1_vnet_name-gw -l $location1 --vnet-name $onprem1_vnet_name --subnet $onprem1_gw_subnet_name --ip-forwarding true --public-ip-address $onprem1_vnet_name-gw -o none
+az vm create -g $rg -n $onprem1_vnet_name-gw -l $location1 --image Ubuntu2404 --nics $onprem1_vnet_name-gw --os-disk-name "$onprem1_vnet_name-gw" --size $vm_size --admin-username $admin_username --generate-ssh-keys --custom-data $onprem_gw_cloudinit_file --no-wait -o none
+# onprem1-gw vm details
+onprem1_gw_pubip=$(az network public-ip show -g $rg -n $onprem1_vnet_name-gw --query ipAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-gw: $onprem1_gw_pubip
+onprem1_gw_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-gw --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-gw private IP: $onprem1_gw_private_ip
+onprem1_default_gw=$(first_ip $onprem1_gw_subnet_address) && echo $onprem1_vnet_name-gw external NIC default gateway IP: $onprem1_default_gw
+
+# spoke1
+echo -e "\e[1;36mCreating $spoke1_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $spoke1_vnet_name -l $location1 --address-prefixes $spoke1_vnet_address --subnet-name $spoke1_vm_subnet_name --subnet-prefixes $spoke1_vm_subnet_address -o none
+
+# onprem1 vm nsg
+echo -e "\e[1;36mCreating $onprem1_vnet_name-vm NSG...\e[0m"
+az network nsg create -g $rg -n $onprem1_vnet_name-vm -l $location1 -o none
+az network nsg rule create -g $rg -n AllowSSH --nsg-name $onprem1_vnet_name-vm --priority 1000 --access Allow --description AllowSSH --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMP --nsg-name $onprem1_vnet_name-vm --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network vnet subnet update -g $rg -n $onprem1_vm_subnet_name --vnet-name $onprem1_vnet_name --nsg $onprem1_vnet_name-vm -o none
+
+# onprem1 gw nsg
+echo -e "\e[1;36mCreating $onprem1_vnet_name-gw NSG...\e[0m"
+az network nsg create -g $rg -n $onprem1_vnet_name-gw -l $location1 -o none
+az network nsg rule create -g $rg -n AllowSSHin --nsg-name $onprem1_vnet_name-gw --priority 1000 --access Allow --description AllowSSH --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIKE --nsg-name $onprem1_vnet_name-gw --priority 1010 --access Allow --description AllowIKE --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 4500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIPSec --nsg-name $onprem1_vnet_name-gw --priority 1020 --access Allow --description AllowIPSec --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPin --nsg-name $onprem1_vnet_name-gw --priority 1030 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowSSHout --nsg-name $onprem1_vnet_name-gw --priority 1000 --access Allow --description AllowSSH --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPout --nsg-name $onprem1_vnet_name-gw --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network vnet subnet update -g $rg -n $onprem1_gw_subnet_name --vnet-name $onprem1_vnet_name --nsg $onprem1_vnet_name-gw -o none
+
+# spoke1 vm nsg
+echo -e "\e[1;36mCreating $spoke1_vnet_name-vm NSG...\e[0m"
+az network nsg create -g $rg -n $spoke1_vnet_name-vm -l $location1 -o none
+az network nsg rule create -g $rg -n AllowSSH --nsg-name $spoke1_vnet_name-vm --priority 1000 --access Allow --description AllowSSH --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network vnet subnet update -g $rg -n $spoke1_vm_subnet_name --vnet-name $spoke1_vnet_name --nsg $spoke1_vnet_name-vm -o none
+
+# hub1 gw nsg
+echo -e "\e[1;36mCreating $hub1_vnet_name-gw NSG...\e[0m"
+az network nsg create -g $rg -n $hub1_vnet_name-gw -l $location1 -o none
+az network nsg rule create -g $rg -n AllowSSHin --nsg-name $hub1_vnet_name-gw --priority 1000 --access Allow --description AllowSSH --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIKE --nsg-name $hub1_vnet_name-gw --priority 1010 --access Allow --description AllowIKE --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 4500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIPSec --nsg-name $hub1_vnet_name-gw --priority 1020 --access Allow --description AllowIPSec --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPin --nsg-name $hub1_vnet_name-gw --priority 1030 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowHTTPS --nsg-name $hub1_vnet_name-gw --priority 1040 --access Allow --description AllowHTTPS --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 443 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowHTTP --nsg-name $hub1_vnet_name-gw --priority 1050 --access Allow --description AllowHTTP --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 80 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowSSHout --nsg-name $hub1_vnet_name-gw --priority 1000 --access Allow --description AllowSSH --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPout --nsg-name $hub1_vnet_name-gw --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network vnet subnet update -g $rg -n $hub1_gw_subnet_name --vnet-name $hub1_vnet_name --nsg $hub1_vnet_name-gw -o none
+
+# hub1 vm
+echo -e "\e[1;36mCreating $hub1_vnet_name VM...\e[0m"
+az network nic create -g $rg -n $hub1_vnet_name -l $location1 --vnet-name $hub1_vnet_name --subnet $hub1_vm_subnet_name -o none
+az vm create -g $rg -n $hub1_vnet_name -l $location1 --image Ubuntu2404 --nics "$hub1_vnet_name" --os-disk-name "$hub1_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+hub1_vm_ip=$(az network nic show -g $rg -n $hub1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $hub1_vnet_name vm private ip: $hub1_vm_ip
+
+# spoke1 vm
+echo -e "\e[1;36mCreating $spoke1_vnet_name VM...\e[0m"
+az network nic create -g $rg -n "$spoke1_vnet_name" -l $location1 --vnet-name $spoke1_vnet_name --subnet $spoke1_vm_subnet_name -o none
+az vm create -g $rg -n $spoke1_vnet_name -l $location1 --image Ubuntu2404 --nics "$spoke1_vnet_name" --os-disk-name "$spoke1_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+spoke1_vm_ip=$(az network nic show -g $rg -n $spoke1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $spoke1_vnet_name vm private ip: $spoke1_vm_ip
+
+# onprem1 vm
+echo -e "\e[1;36mCreating $onprem1_vnet_name VM...\e[0m"
+az network nic create -g $rg -n "$onprem1_vnet_name" -l $location1 --vnet-name $onprem1_vnet_name --subnet $onprem1_vm_subnet_name -o none
+az vm create -g $rg -n $onprem1_vnet_name -l $location1 --image Ubuntu2404 --nics "$onprem1_vnet_name" --os-disk-name "$onprem1_vnet_name" --size $vm_size --admin-username $admin_username --generate-ssh-keys --no-wait
+onprem1_vm_ip=$(az network nic show -g $rg -n $onprem1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name vm private ip: $onprem1_vm_ip
+
+# onprem1 route table
+echo -e "\e[1;36mCreating $onprem1_vnet_name route table...\e[0m"
+az network route-table create -g $rg -n $onprem1_vnet_name -l $location1 -o none
+az network route-table route create -g $rg -n to-$hub1_vnet_name --address-prefix $hub1_vnet_address --next-hop-type virtualappliance --route-table-name $onprem1_vnet_name --next-hop-ip-address $onprem1_gw_private_ip -o none
+az network route-table route create -g $rg -n to-$spoke1_vnet_name --address-prefix $spoke1_vnet_address --next-hop-type virtualappliance --route-table-name $onprem1_vnet_name --next-hop-ip-address $onprem1_gw_private_ip -o none
+az network vnet subnet update -g $rg --vnet-name $onprem1_vnet_name -n $onprem1_vm_subnet_name --route-table $onprem1_vnet_name -o none
+
+# spoke1 route table
+echo -e "\e[1;36mCreating $spoke1_vnet_name route table....\e[0m"
+az network route-table create -g $rg -n $spoke1_vnet_name -l $location1 --disable-bgp-route-propagation true -o none
+az network route-table route create -g $rg -n to-default0 --address-prefix $default0 --next-hop-type virtualappliance --route-table-name $spoke1_vnet_name --next-hop-ip-address $hub1_gw_wan_private_ip -o none
+az network route-table route create -g $rg -n to-default1 --address-prefix $default1 --next-hop-type virtualappliance --route-table-name $spoke1_vnet_name --next-hop-ip-address $hub1_gw_wan_private_ip -o none
+az network route-table route create -g $rg -n to-onprem1 --address-prefix $onprem1_vnet_address --next-hop-type virtualappliance --route-table-name $spoke1_vnet_name --next-hop-ip-address $hub1_gw_wan_private_ip -o none
+az network vnet subnet update -g $rg -n $spoke1_vm_subnet_name --vnet-name $spoke1_vnet_name --route-table $spoke1_vnet_name -o none
+
+# # hub1 vm route table
+echo -e "\e[1;36mCreating $hub1_vnet_name-vm route table....\e[0m"
+az network route-table create -g $rg -n $hub1_vnet_name-vm -l $location1 --disable-bgp-route-propagation true -o none
+az network route-table route create -g $rg -n to-default0 --address-prefix $default0 --next-hop-type virtualappliance --route-table-name $hub1_vnet_name-vm --next-hop-ip-address $hub1_gw_wan_private_ip -o none
+az network route-table route create -g $rg -n to-default1 --address-prefix $default1 --next-hop-type virtualappliance --route-table-name $hub1_vnet_name-vm --next-hop-ip-address $hub1_gw_wan_private_ip -o none
+az network route-table route create -g $rg -n to-onprem1 --address-prefix $onprem1_vnet_address --next-hop-type virtualappliance --route-table-name $hub1_vnet_name-vm --next-hop-ip-address $hub1_gw_wan_private_ip -o none
+az network vnet subnet update -g $rg -n $hub1_vm_subnet_name --vnet-name $hub1_vnet_name --route-table $hub1_vnet_name-vm -o none
+
+# opnsense vm boot diagnostics
+echo -e "\e[1;36mEnabling VM boot diagnostics for $hub1_vnet_name-gw...\e[0m"
+az vm boot-diagnostics enable -g $rg -n $hub1_vnet_name-gw -o none
+
+# configuring opnsense
+echo -e "\e[1;36mConfiguring $hub1_vnet_name-gw...\e[0m"
+config_file=config.xml
+curl -o $config_file https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/config.xml
+echo -e "\e[1;36mCopying configuration files to $hub1_vnet_name-gw and installing opnsense firewall...\e[0m"
+scp -o StrictHostKeyChecking=no $opnsense_init_file $config_file $admin_username@$hub1_gw_public_ip:/home/$admin_username
+ssh -o StrictHostKeyChecking=no $admin_username@$hub1_gw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
+rm $opnsense_init_file $config_file
+
+# spoke1-to-hub1 vnet peering
+echo -e "\e[1;36mCreating VNet Peering between $hub1_vnet_name and $spoke1_vnet_name...\e[0m"
+az network vnet peering create -g $rg -n $hub1_vnet_name-peering --remote-vnet $hub1_vnet_name --vnet-name $spoke1_vnet_name --allow-vnet-access -o none
+# hub1-$spoke1_vnet_name vnet peering
+az network vnet peering create -g $rg -n $spoke1_vnet_name-peering --remote-vnet $spoke1_vnet_name --vnet-name $hub1_vnet_name --allow-vnet-access --allow-forwarded-traffic -o none
+
+
+#######################
+# onprem1 VPN Config  #
+#######################
+echo -e "\e[1;36mCreating S2S/BGP VPN Config files for $onprem1_vnet_name Gateway VM...\e[0m"
+# ipsec.secrets
+psk_file=~/ipsec.secrets
+cat <<EOF > $psk_file
+$onprem1_gw_pubip $hub1_gw_public_ip : PSK $psk
+EOF
+
+ipsec_file=~/ipsec.conf
+cat <<EOF > $ipsec_file
+conn $hub1_vnet_name-gw
+         dpdaction=restart
+         ike=aes256-sha1-modp1024
+         esp=aes256-sha1
+         keyexchange=ikev2
+         ikelifetime=28800s
+         keylife=3600s
+         authby=secret
+         # onprem1 private ip address
+         left=$onprem1_gw_private_ip
+         # onprem1 Public ip address
+         leftid=$onprem1_gw_pubip
+         # onprem1 Address Space2
+         leftsubnet=$onprem1_vnet_address
+         # HUB Gateway Public IP
+         right=$hub1_gw_public_ip
+         # HUB Gateway Public IP
+         rightid=$hub1_gw_public_ip
+         # Azure Vnet Address Spaces and onther on-premises network address space (comma separated, if more that one i.e hub and spoke topology)
+         rightsubnet=$hub1_vnet_address,$spoke1_vnet_address
+         auto=start
+EOF
+
+##### copy files to onprem gw
+echo -e "\e[1;36mCopying and applying S2S VPN Config files to $onprem1_vnet_name-gw Gateway VM...\e[0m"
+scp -o StrictHostKeyChecking=no $psk_file $ipsec_file $onprem1_gw_pubip:/home/$admin_username
+scp -o StrictHostKeyChecking=no ~/.ssh/* $onprem1_gw_pubip:/home/$admin_username/.ssh/
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo mv /home/$admin_username/ipsec.* /etc/"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipsec restart"
+
+# hub1 gw ipsec config
+# Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s.html but take the following into account:
+# 1. In phase 1, set 'My identifier'/'Peer identifier' to IP address and put the public ip address of each opnsense firewall
+# 2. in phase 2, set the 'local network'/'remote network' to network and put the $site1_vnet_address and $site2_vnet_address
+# 3. In the IPSec firewall rule, set the 'destination' to 'Single host or Network' and put the hub vnet address space
+
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipsec status"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipsec statusall"
+
+# clean up config files
+rm $psk_file $ipsec_file $onprem_gw_cloudinit_file
+
+
