@@ -205,10 +205,12 @@ az network vnet subnet update -g $rg -n $hub1_vm_subnet_name --vnet-name $hub1_v
 echo -e "\e[1;36mEnabling VM boot diagnostics for $hub1_vnet_name-gw...\e[0m"
 az vm boot-diagnostics enable -g $rg -n $hub1_vnet_name-gw -o none
 
+# Downloading opnsense config file and replacing the public ip addresses of both opnsense and onrem1 gateways
+config_file=~/config.xml
+curl -o $config_file https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/config.xml
+sed -i -e "s/104\.211\.112\.22/${onprem1_gw_pubip}/g" -e "s/104\.211\.112\.136/${hub1_gw_public_ip}/g" $config_file
 # configuring opnsense
 echo -e "\e[1;36mConfiguring $hub1_vnet_name-gw...\e[0m"
-config_file=config.xml
-curl -o $config_file https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/config.xml
 echo -e "\e[1;36mCopying configuration files to $hub1_vnet_name-gw and installing opnsense firewall...\e[0m"
 scp -o StrictHostKeyChecking=no $opnsense_init_file $config_file $admin_username@$hub1_gw_public_ip:/home/$admin_username
 ssh -o StrictHostKeyChecking=no $admin_username@$hub1_gw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
@@ -270,10 +272,22 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipse
 # 2. in phase 2, set the 'local network'/'remote network' to network and put the $site1_vnet_address and $site2_vnet_address
 # 3. In the IPSec firewall rule, set the 'destination' to 'Single host or Network' and put the hub vnet address space
 
+echo -e "\e[1;36mChecking S2S VPN on $onprem1_vnet_name-gw Gateway VM...\e[0m"
 ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipsec status"
 ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "sudo ipsec statusall"
 
+echo -e "\e[1;36mChecking connectivity from $onprem1_vnet_name-gw Gateway to $hub1_vnet_name and $spoke1_vnet_name...\e[0m"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "ping -c 3 $hub1_vm_ip"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "ping -c 3 $spoke1_vm_ip"
+
+echo -e "\e[1;36mChecking connectivity from $hub1_vnet_name VM to $onprem1_vnet_name VM...\e[0m"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $hub1_vm_ip 'ping -c 3 $onprem1_vm_ip'"
+
+echo -e "\e[1;36mChecking connectivity from $spoke1_vnet_name VM to $onprem1_vnet_name VM...\e[0m"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $onprem1_gw_pubip "ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $spoke1_vm_ip 'ping -c 3 $onprem1_vm_ip'"
+
 # clean up config files
 rm $psk_file $ipsec_file $onprem_gw_cloudinit_file
+echo -e "\e[1;35mAccess opensense portal and check vpn status https://$hub1_gw_public_ip \e[0m"
 
 # az group delete -n $rg -y --no-wait
