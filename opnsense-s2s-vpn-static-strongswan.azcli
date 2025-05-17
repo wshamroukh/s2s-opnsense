@@ -77,15 +77,6 @@ runcmd:
   - sudo sysctl -p
 EOF
 
-function first_ip(){
-    subnet=$1
-    IP=$(echo $subnet | cut -d/ -f 1)
-    IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
-    NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 1 ))`)
-    NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
-    echo "$NEXT_IP"
-}
-
 # resource groups
 echo -e "\e[1;36mCreating $rg resource group...\e[0m"
 az group create -l $location1 -n $rg -o none
@@ -117,7 +108,6 @@ az vm create -g $rg -n $onprem1_vnet_name-gw -l $location1 --image Ubuntu2404 --
 # onprem1-gw vm details
 onprem1_gw_pubip=$(az network public-ip show -g $rg -n $onprem1_vnet_name-gw --query ipAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-gw: $onprem1_gw_pubip
 onprem1_gw_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-gw --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-gw private IP: $onprem1_gw_private_ip
-onprem1_default_gw=$(first_ip $onprem1_gw_subnet_address) && echo $onprem1_vnet_name-gw external NIC default gateway IP: $onprem1_default_gw
 
 # spoke1
 echo -e "\e[1;36mCreating $spoke1_vnet_name VNet...\e[0m"
