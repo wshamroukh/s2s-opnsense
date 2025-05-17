@@ -1,4 +1,4 @@
-rg=opnsense-s2s-strongswan
+rg=opnsense-s2s-vpn-static-strongswan
 location1='centralindia'
 hub1_vnet_name='hub1'
 hub1_vnet_address='10.1.0.0/16'
@@ -102,7 +102,7 @@ az network nic create -g $rg -n "$hub1_vnet_name-gw-wan" --subnet $hub1_gw_subne
 az vm create -g $rg -n $hub1_vnet_name-gw --image $hub1_gw_vm_image --nics "$hub1_vnet_name-gw-wan" --os-disk-name $hub1_vnet_name-gw --size Standard_B2als_v2 --admin-username $admin_username --generate-ssh-keys --no-wait
 # hub1 fw opnsense vm details:
 hub1_gw_public_ip=$(az network public-ip show -g $rg -n "$hub1_vnet_name-gw" --query 'ipAddress' -o tsv | tr -d '\r') && echo $hub1_vnet_name-gw public ip: $hub1_gw_public_ip
-hub1_gw_wan_private_ip=$(az network nic show -g $rg -n $hub1_vnet_name-gw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-gw wan private IP: $hub1_gw_wan_private_ip
+hub1_gw_wan_private_ip=$(az network nic show -g $rg -n $hub1_vnet_name-gw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $hub1_vnet_name-gw wan private IP: $hub1_gw_wan_private_ip
 
 # onprem1
 echo -e "\e[1;36mCreating $onprem1_vnet_name VNet...\e[0m"
