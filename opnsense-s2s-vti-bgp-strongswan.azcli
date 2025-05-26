@@ -135,8 +135,9 @@ ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "sudo reboot"
 # clean up config files
 rm $site2_init_file $site1_config
 
-# site2 VPN Config  #
-#######################
+####################
+# site2 VPN Config #
+####################
 echo -e "\e[1;36mCreating S2S/BGP VPN Config files for $site2_vnet_name-gw gateway VM...\e[0m"
 # ipsec.secrets
 psk_file=~/ipsec.secrets
