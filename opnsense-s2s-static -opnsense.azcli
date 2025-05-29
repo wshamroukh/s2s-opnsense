@@ -103,33 +103,37 @@ az network vnet subnet update -g $rg -n $site2_vm_subnet_name --vnet-name $site2
 echo -e "\e[1;36mDownloading opnsense configuration files...\e[0m"
 site1_config=~/opnsense-static-s2s-site1.xml
 curl -o $site1_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-static-s2s-site1.xml
-sed -i -e "s/13\.71\.18\.240/${site1_fw_public_ip}/g" -e "s/52\.140\.68\.181/${site2_fw_public_ip}/g" $site1_config
+sed -i -e "s/20\.204\.175\.121/${site1_fw_public_ip}/g" -e "s/20\.204\.175\.93/${site2_fw_public_ip}/g" $site1_config
 
 site2_config=~/opnsense-static-s2s-site2.xml
 curl -o $site2_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-static-s2s-site2.xml
-sed -i -e "s/13\.71\.18\.240/${site1_fw_public_ip}/g" -e "s/52\.140\.68\.181/${site2_fw_public_ip}/g" $site2_config
+sed -i -e "s/20\.204\.175\.121/${site1_fw_public_ip}/g" -e "s/20\.204\.175\.93/${site2_fw_public_ip}/g" $site2_config
 
 echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
 scp -o StrictHostKeyChecking=no $site1_config root@$site1_fw_public_ip:/conf/config.xml
 echo -e "\e[1;36mRebooting $site1_vnet_name-fw after importing the config file...\e[0m"
-ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "sudo reboot"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no root@$site1_fw_public_ip "sudo reboot"
 
 echo -e "\e[1;36mCopying configuration files to $site2_vnet_name-fw and installing opnsense firewall...\e[0m"
 scp -o StrictHostKeyChecking=no $site2_config root@$site2_fw_public_ip:/conf/config.xml
 echo -e "\e[1;36mRebooting $site2_vnet_name-fw after importing the config file...\e[0m"
-ssh -o StrictHostKeyChecking=no root@$site2_fw_public_ip "sudo reboot"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no root@$site2_fw_public_ip "sudo reboot"
+
+# clean up configs
+rm $site1_config $site2_config
 
 # wait for the opnsense firewalls to reboot and apply the configuration
 sleep 90
+
 #############
 # Diagnosis #
 #############
 
 echo -e "\e[1;36mChecking connectivity from $site1_vnet_name-fw to $site2_vnet_name network...\e[0m"
-ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ping -c 3 $site2_fw_wan_private_ip && ping -c 3 $site2_fw_lan_private_ip && ping -c 3 $site2_vm_ip"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ping -c 3 $site2_fw_wan_private_ip && ping -c 3 $site2_fw_lan_private_ip && ping -c 3 $site2_vm_ip"
 
 echo -e "\e[1;36mChecking connectivity from $site2_vnet_name-fw to $site1_vnet_name network...\e[0m"
-ssh -o StrictHostKeyChecking=no root@$site2_fw_public_ip "ping -c 3 $site1_fw_wan_private_ip && ping -c 3 $site1_fw_lan_private_ip && ping -c 3 $site1_vm_ip"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no root@$site2_fw_public_ip "ping -c 3 $site1_fw_wan_private_ip && ping -c 3 $site1_fw_lan_private_ip && ping -c 3 $site1_vm_ip"
 
 
 # Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s.html but take the following into account:
