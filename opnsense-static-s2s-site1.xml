@@ -214,6 +214,7 @@
       <otp_seed/>
       <shell/>
       <password>$2y$10$YRVoF4SgskIsrXOvOQjGieB9XqHPRra9R7d80B3BZdbY/j21TwBfS</password>
+      <pwd_changed_at/>
       <landing_page/>
       <comment/>
       <email/>
@@ -588,8 +589,8 @@
   </ntpd>
   <revision>
     <username>root@45.155.47.233</username>
-    <description>/vpn_ipsec_phase1.php made changes</description>
-    <time>1748277068.2347</time>
+    <description>user \"root\" changed"</description>
+    <time>1748506279.7884</time>
   </revision>
   <OPNsense>
     <wireguard>
@@ -1302,9 +1303,9 @@
       <interface>wan</interface>
       <protocol>inet</protocol>
       <myid_type>address</myid_type>
-      <myid_data>13.71.18.240</myid_data>
+      <myid_data>20.204.175.121</myid_data>
       <peerid_type>address</peerid_type>
-      <peerid_data>52.140.68.181</peerid_data>
+      <peerid_data>20.204.175.93</peerid_data>
       <encryption-algorithm>
         <name>aes</name>
         <keylen>256</keylen>
@@ -1318,7 +1319,7 @@
       <dhgroup>14</dhgroup>
       <hash-algorithm>sha256</hash-algorithm>
       <private-key/>
-      <remote-gateway>52.140.68.181</remote-gateway>
+      <remote-gateway>20.204.175.93</remote-gateway>
     </phase1>
     <phase2>
       <ikeid>1</ikeid>
