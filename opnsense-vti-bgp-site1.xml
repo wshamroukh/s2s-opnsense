@@ -352,7 +352,36 @@
   </snmpd>
   <nat>
     <outbound>
-      <mode>automatic</mode>
+      <mode>hybrid</mode>
+      <rule>
+        <source>
+          <network>any</network>
+        </source>
+        <destination>
+          <any>1</any>
+        </destination>
+        <descr>NAT Rule</descr>
+        <category/>
+        <interface>wan</interface>
+        <tag/>
+        <tagged/>
+        <poolopts/>
+        <poolopts_sourcehashkey/>
+        <ipprotocol>inet</ipprotocol>
+        <target>wanip</target>
+        <sourceport/>
+        <log>1</log>
+        <updated>
+          <username>root@144.48.239.132</username>
+          <time>1752681773.1267</time>
+          <description>/firewall_nat_out_edit.php made changes</description>
+        </updated>
+        <created>
+          <username>root@144.48.239.132</username>
+          <time>1752681773.1267</time>
+          <description>/firewall_nat_out_edit.php made changes</description>
+        </created>
+      </rule>
     </outbound>
   </nat>
   <filter>
@@ -436,6 +465,84 @@
         <any/>
       </destination>
     </rule>
+    <rule uuid="42569afe-a070-4c59-84d2-fe38ec45380c">
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow s1spoke to site1</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>s1spoke</address>
+      </source>
+      <destination>
+        <address>site1</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752682053.5133</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752682053.5133</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="ce0a905c-dd61-4a8f-9d2c-5a4a18761bea">
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow s1spoke to s2spoke traffic</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>s1spoke</address>
+      </source>
+      <destination>
+        <address>s2spoke</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752682145.4905</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752682145.4905</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="ee27a5e0-9c7b-456b-b50d-197701eeaa11">
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow s2spoke to site2 traffic</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>s1spoke</address>
+      </source>
+      <destination>
+        <address>site2</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752682414.9729</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752682414.9729</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
     <rule uuid="b7cbea03-fbf7-4cb6-ab3d-d93ec0973283">
       <type>pass</type>
       <interface>enc0</interface>
@@ -467,19 +574,19 @@
       <interface>enc0</interface>
       <ipprotocol>inet</ipprotocol>
       <statetype>keep state</statetype>
-      <descr>Allow vti traffic to site2 via IPSec</descr>
+      <descr>Allow vti traffic to site1</descr>
       <direction>in</direction>
       <log>1</log>
       <quick>1</quick>
       <source>
-        <address>10.116.0.2</address>
+        <address>10.116.0.2/32</address>
       </source>
       <destination>
-        <address>10.1.0.0/16</address>
+        <address>site1</address>
       </destination>
       <updated>
-        <username>root@45.155.47.233</username>
-        <time>1748241422.608</time>
+        <username>root@144.48.239.132</username>
+        <time>1752681267.588</time>
         <description>/firewall_rules_edit.php made changes</description>
       </updated>
       <created>
@@ -493,24 +600,128 @@
       <interface>enc0</interface>
       <ipprotocol>inet</ipprotocol>
       <statetype>keep state</statetype>
-      <descr>Allow site2 to site1 via IPSec</descr>
+      <descr>Allow site2 to site1</descr>
       <direction>in</direction>
       <log>1</log>
       <quick>1</quick>
       <source>
-        <address>10.2.0.0/16</address>
+        <address>site2</address>
       </source>
       <destination>
-        <address>10.1.0.0/16</address>
+        <address>site1</address>
       </destination>
       <updated>
-        <username>root@45.155.47.233</username>
-        <time>1748241494.5683</time>
+        <username>root@144.48.239.132</username>
+        <time>1752681291.3608</time>
         <description>/firewall_rules_edit.php made changes</description>
       </updated>
       <created>
         <username>root@45.155.47.233</username>
         <time>1748241494.5683</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="0dbbd224-9dd8-4d57-81f7-42f0bf03e7af">
+      <type>pass</type>
+      <interface>enc0</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>allow vti traffic to s1spoke</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>10.116.0.2</address>
+      </source>
+      <destination>
+        <address>s1spoke</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752681312.2225</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752674461.3095</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="7c92a783-20e4-4f3e-a5fe-8fbe912e86ab">
+      <type>pass</type>
+      <interface>enc0</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow site2 to s2spoke traffic</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>site2</address>
+      </source>
+      <destination>
+        <address>s1spoke</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752681631.1</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752681631.1</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="31ffaf1e-73a3-4959-95a3-f5fac4257aaa">
+      <type>pass</type>
+      <interface>enc0</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow s2spoke to site1</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>s2spoke</address>
+      </source>
+      <destination>
+        <address>site1</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752682665.0031</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752682665.0031</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="fea41cd6-848a-45d7-8c5a-0f5b6c4e39cb">
+      <type>pass</type>
+      <interface>enc0</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow s1spoke to s2spoke traffic</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>s2spoke</address>
+      </source>
+      <destination>
+        <address>s1spoke</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752682886.3003</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752682886.3003</time>
         <description>/firewall_rules_edit.php made changes</description>
       </created>
     </rule>
@@ -522,9 +733,9 @@
     <prefer>0.opnsense.pool.ntp.org</prefer>
   </ntpd>
   <revision>
-    <username>root@45.155.47.233</username>
-    <description>/api/quagga/static/set made changes</description>
-    <time>1748242071.6198</time>
+    <username>root@144.48.239.132</username>
+    <description>/firewall_rules_edit.php made changes</description>
+    <time>1752682886.3546</time>
   </revision>
   <OPNsense>
     <wireguard>
@@ -647,7 +858,72 @@
         <geoip>
           <url/>
         </geoip>
-        <aliases/>
+        <aliases>
+          <alias uuid="58eb3f26-efff-4010-8fe1-4c10147e4a2c">
+            <enabled>1</enabled>
+            <name>site1</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>1</counters>
+            <updatefreq/>
+            <content>10.1.0.0/16</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <categories/>
+            <description>site1</description>
+          </alias>
+          <alias uuid="f76a2f65-d1e1-4ecb-b7fd-88fe9915ebc5">
+            <enabled>1</enabled>
+            <name>site2</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>1</counters>
+            <updatefreq/>
+            <content>10.2.0.0/16</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <categories/>
+            <description>site2</description>
+          </alias>
+          <alias uuid="16b26df3-8a14-4f3c-bfa2-de8d6389cf1d">
+            <enabled>1</enabled>
+            <name>s1spoke</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>1</counters>
+            <updatefreq/>
+            <content>10.11.0.0/16</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <categories/>
+            <description>s1spoke</description>
+          </alias>
+          <alias uuid="05d078b1-1e02-45ef-9d2b-89469f8f7264">
+            <enabled>1</enabled>
+            <name>s2spoke</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>10.12.0.0/16</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <categories/>
+            <description>s2spoke</description>
+          </alias>
+        </aliases>
       </Alias>
       <Category version="1.0.0">
         <categories/>
@@ -1094,7 +1370,7 @@
         <graceful>0</graceful>
         <networkimportcheck>1</networkimportcheck>
         <logneighborchanges>0</logneighborchanges>
-        <networks>10.1.0.0/16</networks>
+        <networks>10.1.0.0/16,10.11.0.0/16</networks>
         <neighbors>
           <neighbor uuid="b2d5f110-a27f-4ba1-a7ca-06ff09ab9c96">
             <enabled>1</enabled>
@@ -1192,6 +1468,12 @@
           <route uuid="573a4ea0-cb87-447d-9d4f-c162e40a1570">
             <enabled>1</enabled>
             <network>10.1.0.0/16</network>
+            <gateway>10.1.0.1</gateway>
+            <interfacename>wan</interfacename>
+          </route>
+          <route uuid="7ae3322f-2a3f-4946-a5ea-68c3931eb2ca">
+            <enabled>1</enabled>
+            <network>10.11.0.0/16</network>
             <gateway>10.1.0.1</gateway>
             <interfacename>wan</interfacename>
           </route>
@@ -1303,9 +1585,9 @@
       <interface>wan</interface>
       <protocol>inet</protocol>
       <myid_type>address</myid_type>
-      <myid_data>4.247.143.124</myid_data>
+      <myid_data>52.172.186.229</myid_data>
       <peerid_type>address</peerid_type>
-      <peerid_data>4.247.181.69</peerid_data>
+      <peerid_data>52.172.202.98</peerid_data>
       <encryption-algorithm>
         <name>aes</name>
         <keylen>256</keylen>
@@ -1320,7 +1602,7 @@
       <hash-algorithm>sha256</hash-algorithm>
       <noinstallpolicy>1</noinstallpolicy>
       <private-key/>
-      <remote-gateway>4.247.181.69</remote-gateway>
+      <remote-gateway>52.172.202.98</remote-gateway>
       <ikeid>1</ikeid>
     </phase1>
     <phase2>
