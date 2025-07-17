@@ -540,6 +540,32 @@
         <any/>
       </destination>
     </rule>
+    <rule uuid="1f606650-37af-4ab8-929f-57e979f7ce7a">
+      <type>pass</type>
+      <interface>lan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow spoke1 to onprem1 traffic</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>spoke1</address>
+      </source>
+      <destination>
+        <address>onprem1</address>
+      </destination>
+      <updated>
+        <username>root@144.48.239.132</username>
+        <time>1752738644.2074</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@144.48.239.132</username>
+        <time>1752738644.2074</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
     <rule uuid="69a1d3bc-e911-48f9-971c-67b910e93698">
       <type>pass</type>
       <interface>enc0</interface>
@@ -601,8 +627,8 @@
   </ntpd>
   <revision>
     <username>root@144.48.239.132</username>
-    <description>/firewall_nat_out.php made changes</description>
-    <time>1752736831.2429</time>
+    <description>/firewall_rules_edit.php made changes</description>
+    <time>1752738644.2569</time>
   </revision>
   <OPNsense>
     <wireguard>
