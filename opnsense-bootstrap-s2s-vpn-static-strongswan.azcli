@@ -44,7 +44,7 @@ mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
 sed 's/set -e/#set -e/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
 mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
 sudo chmod +x opnsense-bootstrap.sh.in
-sudo sh ~/opnsense-bootstrap.sh.in -y -r 25.1
+sudo sh ~/opnsense-bootstrap.sh.in -y -r 25.7
 sudo cp ~/config.xml /usr/local/etc/config.xml
 sudo pkg upgrade
 sudo pkg install -y bash git py311-setuptools-63.1.0_3
@@ -169,16 +169,19 @@ onprem1_vm_ip=$(az network nic show -g $rg -n $onprem1_vnet_name --query ipConfi
 echo -e "\e[1;36mEnabling VM boot diagnostics for $hub1_vnet_name-gw...\e[0m"
 az vm boot-diagnostics enable -g $rg -n $hub1_vnet_name-gw -o none
 
-# Downloading opnsense config file and replacing the public ip addresses of both opnsense and onrem1 gateways
-config_file=~/config.xml
-curl -o $config_file https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/config.xml
-sed -i -e "s/104\.211\.112\.22/${onprem1_gw_pubip}/g" -e "s/104\.211\.112\.136/${hub1_gw_public_ip}/g" $config_file
-# configuring opnsense
-echo -e "\e[1;36mConfiguring $hub1_vnet_name-gw...\e[0m"
-echo -e "\e[1;36mCopying configuration files to $hub1_vnet_name-gw and installing opnsense firewall...\e[0m"
-scp -o StrictHostKeyChecking=no $opnsense_init_file $config_file $admin_username@$hub1_gw_public_ip:/home/$admin_username
-ssh -o StrictHostKeyChecking=no $admin_username@$hub1_gw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
-rm $opnsense_init_file $config_file
+# Download config files
+hub1_config=~/config.xml
+curl -o $hub1_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-static.xml
+sed -i -e "s/74\.225\.222\.193/${hub1_fw_public_ip}/g" -e "s/13\.71\.19\.159/${onprem1_gw_pubip}/g" $hub1_config
+
+# Copying config files to site1 pfsense
+echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
+scp -o StrictHostKeyChecking=no $hub1_config $admin_username@$hub1_fw_public_ip:~/config.xml
+scp -o StrictHostKeyChecking=no $opnsense_init_file $config_file $admin_username@$hub1_fw_public_ip:/home/$admin_username
+ssh -o StrictHostKeyChecking=no $admin_username@$hub1_fw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
+
+# clean up config files
+rm $hub1_config $opnsense_init_file
 
 # onprem1 route table
 echo -e "\e[1;36mCreating $onprem1_vnet_name route table...\e[0m"
