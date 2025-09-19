@@ -8,7 +8,7 @@ site1_fw_subnet_name='fw'
 site1_fw_subnet_address='10.1.0.0/24'
 site1_vm_subnet_name='vm'
 site1_vm_subnet_address='10.1.1.0/24'
-site1_fw_vti_ip=10.116.0.1
+site1_fw_vti_ip=192.168.1.1
 site1_fw_asn=65551
 
 
@@ -18,13 +18,14 @@ site2_fw_subnet_name='fw'
 site2_fw_subnet_address='10.2.0.0/24'
 site2_vm_subnet_name='vm'
 site2_vm_subnet_address='10.2.1.0/24'
-site2_fw_vti_ip=10.116.0.2
+site2_fw_vti_ip=192.168.1.2
 site2_fw_asn=65552
 
 vm_size=Standard_B2ats_v2
 admin_username=$(whoami)
 admin_password='Test#123#123'
 myip=$(curl -s4 https://ifconfig.co/)
+psk=secret12345
 
 site2_init_file=site2_gw_cloudinit.txt
 cat <<EOF > $site2_init_file
@@ -89,9 +90,9 @@ az network vnet subnet create -g $rg -n $site2_fw_subnet_name --address-prefixes
 
 # site2-gw vm
 echo -e "\e[1;36mCreating $site2_vnet_name-gw VM...\e[0m"
-az network public-ip create -g $rg -n $site2_vnet_name-gw -l $location1 --allocation-method static --sku basic -o none
-az network nic create -g $rg -n $site2_vnet_name-gw -l $location1 --vnet-name $site2_vnet_name --subnet $site2_fw_subnet_name --ip-forwarding true --public-ip-address $site2_vnet_name-gw -o none
-az vm create -g $rg -n $site2_vnet_name-gw -l $location1 --image Ubuntu2404 --nics $site2_vnet_name-gw --os-disk-name "$site2_vnet_name-gw" --size $vm_size --admin-username $admin_username --generate-ssh-keys --custom-data $site2_init_file --no-wait -o none
+az network public-ip create -g $rg -n $site2_vnet_name-gw -l $location --allocation-method static --sku basic -o none
+az network nic create -g $rg -n $site2_vnet_name-gw -l $location --vnet-name $site2_vnet_name --subnet $site2_fw_subnet_name --ip-forwarding true --public-ip-address $site2_vnet_name-gw -o none
+az vm create -g $rg -n $site2_vnet_name-gw -l $location --image Ubuntu2404 --nics $site2_vnet_name-gw --os-disk-name "$site2_vnet_name-gw" --size $vm_size --admin-username $admin_username --generate-ssh-keys --custom-data $site2_init_file --no-wait -o none
 # site2-gw vm details
 site2_gw_pubip=$(az network public-ip show -g $rg -n $site2_vnet_name-gw --query ipAddress -o tsv | tr -d '\r') && echo $site2_vnet_name-gw: $site2_gw_pubip
 site2_gw_private_ip=$(az network nic show -g $rg -n $site2_vnet_name-gw --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site2_vnet_name-gw private IP: $site2_gw_private_ip
@@ -126,7 +127,7 @@ az network vnet subnet update -g $rg -n $site2_vm_subnet_name --vnet-name $site2
 # Download config files
 site1_config=~/site1_vti_bgp_config.xml
 curl -o $site1_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-vti-bgp-site1.xml
-sed -i -e "s/4\.247\.143\.124/${site1_fw_public_ip}/g" -e "s/4\.247\.181\.69/${site2_gw_pubip}/g" $site1_config
+sed -i -e "s/4\.188\.249\.194/${site1_fw_public_ip}/g" -e "s/74\.225\.146\.52/${site2_gw_pubip}/g" $site1_config
 # Copying config files to site1 pfsense
 echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
 scp -o StrictHostKeyChecking=no $site1_config root@$site1_fw_public_ip:/conf/config.xml
@@ -298,9 +299,9 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $site2_gw_pubip "ping -c 3 $
 ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $site2_gw_pubip "sudo vtysh -c 'show bgp summary' && sudo vtysh -c 'show ip route' && sudo vtysh -c 'show ip bgp'"
 
 # site1 gw ipsec config
-# Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s.html but take the following into account:
-# 1. In phase 1, set 'My identifier'/'Peer identifier' to IP address and put the public ip address of each opnsense firewall
-# 2. in phase 2, set the 'local network'/'remote network' to network and put the $site1_vnet_address and $site2_vnet_address
-# 3. In the IPSec firewall rule, set the 'destination' to 'Single host or Network' and put the hub vnet address space
+# Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s-conn-route.html but take the following into account:
+# 1. While creating the Virtual Tunnel Interfaces (VTI) set the local address to the private IP address on the WAN interface of the opnsense and remote address is the public ip address of the other fw
+# 2. In General Settings set 'Local addresses' to the private IP address on the WAN interface of the opnsense while 'Remote addresses' should be set to the Public IP address of the other fw
+
 
 # az group delete -n $rg -y --no-wait
