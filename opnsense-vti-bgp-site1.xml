@@ -214,6 +214,7 @@
       <otp_seed/>
       <shell/>
       <password>$2y$10$YRVoF4SgskIsrXOvOQjGieB9XqHPRra9R7d80B3BZdbY/j21TwBfS</password>
+      <pwd_changed_at/>
       <landing_page/>
       <comment/>
       <email/>
@@ -221,7 +222,7 @@
       <priv/>
       <language/>
       <descr>System Administrator</descr>
-      <dashboard/>
+      <dashboard>eyJvcHRpb25zIjpbXSwid2lkZ2V0cyI6W3siaWQiOiJzeXN0ZW1pbmZvcm1hdGlvbiIsIm1pblciOjIsIngiOjAsInkiOjAsImgiOjUwOSwid2lkZ2V0IjpbXSwidyI6Mn0seyJpZCI6Im1lbW9yeSIsIm1pblciOjEsIngiOjIsInkiOjAsImgiOjEyMywid2lkZ2V0IjpbXSwidyI6bnVsbH0seyJpZCI6ImRpc2siLCJtaW5XIjoxLCJ4IjozLCJ5IjowLCJoIjoxMjMsIndpZGdldCI6W10sInciOm51bGx9LHsiaWQiOiJpbnRlcmZhY2VzdGF0aXN0aWNzIiwibWluVyI6MiwieCI6NCwieSI6MCwidyI6NCwiaCI6MzI1LCJ3aWRnZXQiOltdfSx7ImlkIjoiZmlyZXdhbGwiLCJtaW5XIjoyLCJ4Ijo4LCJ5IjowLCJ3Ijo0LCJoIjozMjUsIndpZGdldCI6W119LHsiaWQiOiJnYXRld2F5cyIsIm1pblciOjIsIngiOjIsInkiOjEyMywic2l6ZVRvQ29udGVudCI6NjUwLCJoIjozNTYsIndpZGdldCI6eyJnYXRld2F5cyI6WyJMQU5fREhDUDYiLCJMQU5fREhDUCIsIldBTl9ESENQNiIsIldBTl9ESENQIl19LCJ3IjoyfSx7ImlkIjoic2VydmljZXMiLCJtaW5XIjoyLCJ4Ijo0LCJ5IjozMjUsInciOjQsInNpemVUb0NvbnRlbnQiOjY1MCwiaCI6NTMwLCJ3aWRnZXQiOltdfSx7ImlkIjoidHJhZmZpYyIsIm1pblciOjIsIngiOjgsInkiOjMyNSwidyI6NCwiaCI6NDQ1LCJ3aWRnZXQiOnsiaW50ZXJmYWNlcyI6WyJsYW4iLCJ3YW4iXX19LHsiaWQiOiJpbnRlcmZhY2VzIiwibWluVyI6Miwic2l6ZVRvQ29udGVudCI6NjUwLCJ4IjoyLCJ5Ijo0NzksImgiOjI0OSwid2lkZ2V0IjpbXSwidyI6Mn0seyJpZCI6ImNwdSIsIm1pblciOjIsIngiOjAsInkiOjUwOSwiaCI6MTc3LCJ3aWRnZXQiOnsiZ3JhcGhzIjpbInRvdGFsIl19LCJ3IjoyfSx7ImlkIjoiYW5ub3VuY2VtZW50cyIsIm1pblciOjIsIngiOjAsInkiOjY4Niwic2l6ZVRvQ29udGVudCI6MzUwLCJoIjozNTAsIndpZGdldCI6W10sInciOjJ9XX0=</dashboard>
     </user>
     <nextuid>2000</nextuid>
     <nextgid>2000</nextgid>
@@ -284,17 +285,59 @@
   </system>
   <interfaces>
     <wan>
-      <enable>1</enable>
       <if>hn0</if>
-      <ipaddr>dhcp</ipaddr>
-      <ipaddrv6>dhcp6</ipaddrv6>
-      <gateway/>
-      <blockpriv>1</blockpriv>
+      <descr/>
+      <enable>1</enable>
+      <spoofmac/>
       <blockbogons>1</blockbogons>
-      <media/>
-      <mediaopt/>
+      <ipaddr>dhcp</ipaddr>
+      <dhcphostname/>
+      <alias-address/>
+      <alias-subnet>32</alias-subnet>
+      <dhcprejectfrom/>
+      <adv_dhcp_pt_timeout/>
+      <adv_dhcp_pt_retry/>
+      <adv_dhcp_pt_select_timeout/>
+      <adv_dhcp_pt_reboot/>
+      <adv_dhcp_pt_backoff_cutoff/>
+      <adv_dhcp_pt_initial_interval/>
+      <adv_dhcp_pt_values>SavedCfg</adv_dhcp_pt_values>
+      <adv_dhcp_send_options/>
+      <adv_dhcp_request_options/>
+      <adv_dhcp_required_options/>
+      <adv_dhcp_option_modifiers/>
+      <adv_dhcp_config_advanced/>
+      <adv_dhcp_config_file_override/>
+      <adv_dhcp_config_file_override_path/>
+      <ipaddrv6>dhcp6</ipaddrv6>
       <dhcp6-ia-pd-len>0</dhcp6-ia-pd-len>
-      <descr>WAN</descr>
+      <adv_dhcp6_interface_statement_send_options/>
+      <adv_dhcp6_interface_statement_request_options/>
+      <adv_dhcp6_interface_statement_information_only_enable/>
+      <adv_dhcp6_interface_statement_script/>
+      <adv_dhcp6_id_assoc_statement_address_enable/>
+      <adv_dhcp6_id_assoc_statement_address/>
+      <adv_dhcp6_id_assoc_statement_address_id/>
+      <adv_dhcp6_id_assoc_statement_address_pltime/>
+      <adv_dhcp6_id_assoc_statement_address_vltime/>
+      <adv_dhcp6_id_assoc_statement_prefix_enable/>
+      <adv_dhcp6_id_assoc_statement_prefix/>
+      <adv_dhcp6_id_assoc_statement_prefix_id/>
+      <adv_dhcp6_id_assoc_statement_prefix_pltime/>
+      <adv_dhcp6_id_assoc_statement_prefix_vltime/>
+      <adv_dhcp6_prefix_interface_statement_sla_len/>
+      <adv_dhcp6_authentication_statement_authname/>
+      <adv_dhcp6_authentication_statement_protocol/>
+      <adv_dhcp6_authentication_statement_algorithm/>
+      <adv_dhcp6_authentication_statement_rdm/>
+      <adv_dhcp6_key_info_statement_keyname/>
+      <adv_dhcp6_key_info_statement_realm/>
+      <adv_dhcp6_key_info_statement_keyid/>
+      <adv_dhcp6_key_info_statement_secret/>
+      <adv_dhcp6_key_info_statement_expire/>
+      <adv_dhcp6_config_advanced/>
+      <adv_dhcp6_config_file_override/>
+      <adv_dhcp6_config_file_override_path/>
     </wan>
     <lan>
       <enable>1</enable>
@@ -307,7 +350,6 @@
       <mediaopt/>
       <gateway/>
       <gatewayv6/>
-      <descr>LAN</descr>
     </lan>
     <lo0>
       <internal_dynamic>1</internal_dynamic>
@@ -332,7 +374,6 @@
     <ipsec1>
       <internal_dynamic>1</internal_dynamic>
       <enable>1</enable>
-      <descr>site2</descr>
       <if>ipsec1</if>
       <type>none</type>
     </ipsec1>
@@ -352,7 +393,7 @@
   </snmpd>
   <nat>
     <outbound>
-      <mode>hybrid</mode>
+      <mode>advanced</mode>
       <rule>
         <source>
           <network>any</network>
@@ -372,13 +413,13 @@
         <sourceport/>
         <log>1</log>
         <updated>
-          <username>root@144.48.239.132</username>
-          <time>1752681773.1267</time>
+          <username>root@45.155.47.233</username>
+          <time>1758273027.29</time>
           <description>/firewall_nat_out_edit.php made changes</description>
         </updated>
         <created>
-          <username>root@144.48.239.132</username>
-          <time>1752681773.1267</time>
+          <username>root@45.155.47.233</username>
+          <time>1758273027.29</time>
           <description>/firewall_nat_out_edit.php made changes</description>
         </created>
       </rule>
@@ -441,6 +482,115 @@
         <description>/firewall_rules_edit.php made changes</description>
       </created>
     </rule>
+    <rule uuid="be07c3cd-4d78-444a-b1e3-0ec796520f8e">
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow IPSEC ESP</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <protocol>esp</protocol>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <network>wanip</network>
+      </destination>
+      <updated>
+        <username>root@45.155.47.233</username>
+        <time>1758271911.16</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@45.155.47.233</username>
+        <time>1758271911.16</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="d7bd6427-3252-4bb6-b484-507a1db8a130">
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow IPSEC ISAKMP</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <protocol>tcp/udp</protocol>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>500</port>
+      </destination>
+      <updated>
+        <username>root@45.155.47.233</username>
+        <time>1758271957.09</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@45.155.47.233</username>
+        <time>1758271957.09</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="b43e084c-ec99-4ea4-a217-ad47f738200e">
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow IPSEC NAT-T</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <protocol>tcp/udp</protocol>
+      <source>
+        <any>1</any>
+      </source>
+      <destination>
+        <network>wanip</network>
+        <port>4500</port>
+      </destination>
+      <updated>
+        <username>root@45.155.47.233</username>
+        <time>1758271998.24</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@45.155.47.233</username>
+        <time>1758271998.24</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
+    <rule uuid="54b4d06a-5263-487f-8028-d94e2eb5fa19">
+      <type>pass</type>
+      <interface>wan</interface>
+      <ipprotocol>inet</ipprotocol>
+      <statetype>keep state</statetype>
+      <descr>Allow traffic from site1 to WAN Address</descr>
+      <direction>in</direction>
+      <log>1</log>
+      <quick>1</quick>
+      <source>
+        <address>site1</address>
+      </source>
+      <destination>
+        <network>wanip</network>
+      </destination>
+      <updated>
+        <username>root@45.155.47.233</username>
+        <time>1758279881.42</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </updated>
+      <created>
+        <username>root@45.155.47.233</username>
+        <time>1758279881.42</time>
+        <description>/firewall_rules_edit.php made changes</description>
+      </created>
+    </rule>
     <rule uuid="7bcede99-34b9-47d4-8212-cb13a400bcc7">
       <type>pass</type>
       <ipprotocol>inet</ipprotocol>
@@ -465,12 +615,12 @@
         <any/>
       </destination>
     </rule>
-    <rule uuid="42569afe-a070-4c59-84d2-fe38ec45380c">
+    <rule uuid="6fe55498-f4bc-435d-9b40-212a9e2d6d89">
       <type>pass</type>
       <interface>lan</interface>
       <ipprotocol>inet</ipprotocol>
       <statetype>keep state</statetype>
-      <descr>Allow s1spoke to site1</descr>
+      <descr>Allow s1spoke traffic to site1</descr>
       <direction>in</direction>
       <log>1</log>
       <quick>1</quick>
@@ -481,22 +631,22 @@
         <address>site1</address>
       </destination>
       <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752682053.5133</time>
+        <username>root@45.155.47.233</username>
+        <time>1758279202.74</time>
         <description>/firewall_rules_edit.php made changes</description>
       </updated>
       <created>
-        <username>root@144.48.239.132</username>
-        <time>1752682053.5133</time>
+        <username>root@45.155.47.233</username>
+        <time>1758278930.13</time>
         <description>/firewall_rules_edit.php made changes</description>
       </created>
     </rule>
-    <rule uuid="ce0a905c-dd61-4a8f-9d2c-5a4a18761bea">
+    <rule uuid="93945fa8-6271-4d66-aa78-e211f1a97c8c">
       <type>pass</type>
       <interface>lan</interface>
       <ipprotocol>inet</ipprotocol>
       <statetype>keep state</statetype>
-      <descr>Allow s1spoke to s2spoke traffic</descr>
+      <descr>Allow s1spoke traffic to site2 and s2spoke</descr>
       <direction>in</direction>
       <log>1</log>
       <quick>1</quick>
@@ -504,224 +654,68 @@
         <address>s1spoke</address>
       </source>
       <destination>
-        <address>s2spoke</address>
+        <address>site2,s2spoke</address>
       </destination>
       <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752682145.4905</time>
+        <username>root@45.155.47.233</username>
+        <time>1758279075.39</time>
         <description>/firewall_rules_edit.php made changes</description>
       </updated>
       <created>
-        <username>root@144.48.239.132</username>
-        <time>1752682145.4905</time>
+        <username>root@45.155.47.233</username>
+        <time>1758279075.39</time>
         <description>/firewall_rules_edit.php made changes</description>
       </created>
     </rule>
-    <rule uuid="ee27a5e0-9c7b-456b-b50d-197701eeaa11">
+    <rule uuid="a455f668-e633-4198-980f-b2c4f4c34ed4">
       <type>pass</type>
       <interface>lan</interface>
       <ipprotocol>inet</ipprotocol>
       <statetype>keep state</statetype>
-      <descr>Allow s2spoke to site2 traffic</descr>
+      <descr>Allow traffic to IPSEC VTI</descr>
       <direction>in</direction>
       <log>1</log>
       <quick>1</quick>
       <source>
-        <address>s1spoke</address>
+        <any>1</any>
       </source>
       <destination>
-        <address>site2</address>
-      </destination>
-      <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752682414.9729</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </updated>
-      <created>
-        <username>root@144.48.239.132</username>
-        <time>1752682414.9729</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </created>
-    </rule>
-    <rule uuid="b7cbea03-fbf7-4cb6-ab3d-d93ec0973283">
-      <type>pass</type>
-      <interface>enc0</interface>
-      <ipprotocol>inet</ipprotocol>
-      <statetype>keep state</statetype>
-      <descr>Allow traffic on vti interfaces via IPSec</descr>
-      <direction>in</direction>
-      <log>1</log>
-      <quick>1</quick>
-      <source>
-        <address>10.116.0.2</address>
-      </source>
-      <destination>
-        <address>10.116.0.1</address>
+        <address>enc0,ipsec1,ipsec1ip</address>
       </destination>
       <updated>
         <username>root@45.155.47.233</username>
-        <time>1748241261.5268</time>
+        <time>1758280284.06</time>
         <description>/firewall_rules_edit.php made changes</description>
       </updated>
       <created>
         <username>root@45.155.47.233</username>
-        <time>1748241261.5268</time>
+        <time>1758280284.06</time>
         <description>/firewall_rules_edit.php made changes</description>
       </created>
     </rule>
-    <rule uuid="a777a122-8ee2-4e28-b76b-8d8012492225">
+    <rule uuid="3e5efaed-9f09-4bb9-a908-ec154904680d">
       <type>pass</type>
       <interface>enc0</interface>
       <ipprotocol>inet</ipprotocol>
       <statetype>keep state</statetype>
-      <descr>Allow vti traffic to site1</descr>
+      <descr>Allow traffic from IPSEC tunnel to local network</descr>
       <direction>in</direction>
       <log>1</log>
       <quick>1</quick>
       <source>
-        <address>10.116.0.2/32</address>
+        <any>1</any>
       </source>
       <destination>
-        <address>site1</address>
+        <address>site1,s1spoke,enc0,ipsec1,ipsec1ip</address>
       </destination>
       <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752681267.588</time>
+        <username>root@45.155.47.233</username>
+        <time>1758276573.06</time>
         <description>/firewall_rules_edit.php made changes</description>
       </updated>
       <created>
         <username>root@45.155.47.233</username>
-        <time>1748241422.608</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </created>
-    </rule>
-    <rule uuid="272e9b47-ef6e-4204-aaae-3e16dbd38e11">
-      <type>pass</type>
-      <interface>enc0</interface>
-      <ipprotocol>inet</ipprotocol>
-      <statetype>keep state</statetype>
-      <descr>Allow site2 to site1</descr>
-      <direction>in</direction>
-      <log>1</log>
-      <quick>1</quick>
-      <source>
-        <address>site2</address>
-      </source>
-      <destination>
-        <address>site1</address>
-      </destination>
-      <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752681291.3608</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </updated>
-      <created>
-        <username>root@45.155.47.233</username>
-        <time>1748241494.5683</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </created>
-    </rule>
-    <rule uuid="0dbbd224-9dd8-4d57-81f7-42f0bf03e7af">
-      <type>pass</type>
-      <interface>enc0</interface>
-      <ipprotocol>inet</ipprotocol>
-      <statetype>keep state</statetype>
-      <descr>allow vti traffic to s1spoke</descr>
-      <direction>in</direction>
-      <log>1</log>
-      <quick>1</quick>
-      <source>
-        <address>10.116.0.2</address>
-      </source>
-      <destination>
-        <address>s1spoke</address>
-      </destination>
-      <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752681312.2225</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </updated>
-      <created>
-        <username>root@144.48.239.132</username>
-        <time>1752674461.3095</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </created>
-    </rule>
-    <rule uuid="7c92a783-20e4-4f3e-a5fe-8fbe912e86ab">
-      <type>pass</type>
-      <interface>enc0</interface>
-      <ipprotocol>inet</ipprotocol>
-      <statetype>keep state</statetype>
-      <descr>Allow site2 to s2spoke traffic</descr>
-      <direction>in</direction>
-      <log>1</log>
-      <quick>1</quick>
-      <source>
-        <address>site2</address>
-      </source>
-      <destination>
-        <address>s1spoke</address>
-      </destination>
-      <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752681631.1</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </updated>
-      <created>
-        <username>root@144.48.239.132</username>
-        <time>1752681631.1</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </created>
-    </rule>
-    <rule uuid="31ffaf1e-73a3-4959-95a3-f5fac4257aaa">
-      <type>pass</type>
-      <interface>enc0</interface>
-      <ipprotocol>inet</ipprotocol>
-      <statetype>keep state</statetype>
-      <descr>Allow s2spoke to site1</descr>
-      <direction>in</direction>
-      <log>1</log>
-      <quick>1</quick>
-      <source>
-        <address>s2spoke</address>
-      </source>
-      <destination>
-        <address>site1</address>
-      </destination>
-      <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752682665.0031</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </updated>
-      <created>
-        <username>root@144.48.239.132</username>
-        <time>1752682665.0031</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </created>
-    </rule>
-    <rule uuid="fea41cd6-848a-45d7-8c5a-0f5b6c4e39cb">
-      <type>pass</type>
-      <interface>enc0</interface>
-      <ipprotocol>inet</ipprotocol>
-      <statetype>keep state</statetype>
-      <descr>Allow s1spoke to s2spoke traffic</descr>
-      <direction>in</direction>
-      <log>1</log>
-      <quick>1</quick>
-      <source>
-        <address>s2spoke</address>
-      </source>
-      <destination>
-        <address>s1spoke</address>
-      </destination>
-      <updated>
-        <username>root@144.48.239.132</username>
-        <time>1752682886.3003</time>
-        <description>/firewall_rules_edit.php made changes</description>
-      </updated>
-      <created>
-        <username>root@144.48.239.132</username>
-        <time>1752682886.3003</time>
+        <time>1758275252.62</time>
         <description>/firewall_rules_edit.php made changes</description>
       </created>
     </rule>
@@ -733,9 +727,9 @@
     <prefer>0.opnsense.pool.ntp.org</prefer>
   </ntpd>
   <revision>
-    <username>root@144.48.239.132</username>
+    <username>root@45.155.47.233</username>
     <description>/firewall_rules_edit.php made changes</description>
-    <time>1752682886.3546</time>
+    <time>1758280284.11</time>
   </revision>
   <OPNsense>
     <wireguard>
@@ -749,7 +743,7 @@
         <servers/>
       </server>
     </wireguard>
-    <IPsec version="1.0.4">
+    <IPsec version="1.0.5" persisted_at="1758272366.34">
       <general>
         <enabled/>
         <preferred_oldsa>0</preferred_oldsa>
@@ -767,7 +761,7 @@
         <ignore_acquire_ts>1</ignore_acquire_ts>
         <install_routes>0</install_routes>
         <cisco_unity>0</cisco_unity>
-        <make_before_break/>
+        <make_before_break>0</make_before_break>
         <retransmit_tries/>
         <retransmit_timeout/>
         <retransmit_base/>
@@ -803,7 +797,6 @@
             <split-include/>
             <x_28674/>
             <x_28675/>
-            <x_25/>
             <x_28672/>
             <x_28673>0</x_28673>
             <x_28679/>
@@ -823,15 +816,103 @@
         </plugins>
       </charon>
       <keyPairs/>
-      <preSharedKeys/>
+      <preSharedKeys>
+        <preSharedKey uuid="2b818f70-0141-4826-8904-e34a4c2ca488">
+          <ident>4.188.249.194</ident>
+          <remote_ident>74.225.146.52</remote_ident>
+          <keyType>PSK</keyType>
+          <Key>secret12345</Key>
+          <description/>
+        </preSharedKey>
+      </preSharedKeys>
     </IPsec>
-    <Swanctl version="1.0.0">
-      <Connections/>
-      <locals/>
-      <remotes/>
-      <children/>
+    <Swanctl version="1.0.0" persisted_at="1758274819.17">
+      <Connections>
+        <Connection uuid="694fe282-267a-4d4a-95f9-e742b1ae191a">
+          <enabled>1</enabled>
+          <proposals>default</proposals>
+          <unique>replace</unique>
+          <aggressive>0</aggressive>
+          <version>2</version>
+          <mobike>1</mobike>
+          <local_addrs>10.1.0.250</local_addrs>
+          <local_port/>
+          <remote_addrs>74.225.146.52</remote_addrs>
+          <remote_port/>
+          <encap>0</encap>
+          <reauth_time/>
+          <rekey_time/>
+          <over_time/>
+          <dpd_delay/>
+          <dpd_timeout/>
+          <pools/>
+          <send_certreq>0</send_certreq>
+          <send_cert/>
+          <keyingtries/>
+          <description>site2</description>
+        </Connection>
+      </Connections>
+      <locals>
+        <local uuid="3ebec2dc-695f-4a05-b49c-38de17a3ce77">
+          <enabled>1</enabled>
+          <connection>694fe282-267a-4d4a-95f9-e742b1ae191a</connection>
+          <round>0</round>
+          <auth>psk</auth>
+          <id>4.188.249.194</id>
+          <eap_id/>
+          <certs/>
+          <pubkeys/>
+          <description/>
+        </local>
+      </locals>
+      <remotes>
+        <remote uuid="7439ed6f-cf5d-4d9a-add3-536a5f4ddff2">
+          <enabled>1</enabled>
+          <connection>694fe282-267a-4d4a-95f9-e742b1ae191a</connection>
+          <round>0</round>
+          <auth>psk</auth>
+          <id>74.225.146.52</id>
+          <eap_id/>
+          <groups/>
+          <certs/>
+          <cacerts/>
+          <pubkeys/>
+          <description/>
+        </remote>
+      </remotes>
+      <children>
+        <child uuid="d3962af4-2daa-46be-a5b4-8702f59e41a9">
+          <enabled>1</enabled>
+          <connection>694fe282-267a-4d4a-95f9-e742b1ae191a</connection>
+          <reqid>1</reqid>
+          <esp_proposals>default</esp_proposals>
+          <sha256_96>0</sha256_96>
+          <start_action>trap</start_action>
+          <close_action>none</close_action>
+          <dpd_action>start</dpd_action>
+          <mode>tunnel</mode>
+          <policies>0</policies>
+          <local_ts>0.0.0.0/0</local_ts>
+          <remote_ts>0.0.0.0/0</remote_ts>
+          <rekey_time>3600</rekey_time>
+          <description/>
+        </child>
+      </children>
       <Pools/>
-      <VTIs/>
+      <VTIs>
+        <VTI uuid="259efa21-a1b4-40a3-ae5d-de1f7ff93678">
+          <enabled>1</enabled>
+          <reqid>1</reqid>
+          <local>10.1.0.250</local>
+          <remote>74.225.146.52</remote>
+          <tunnel_local>192.168.1.1</tunnel_local>
+          <tunnel_remote>192.168.1.2</tunnel_remote>
+          <tunnel_local2/>
+          <tunnel_remote2/>
+          <skip_fw>0</skip_fw>
+          <description/>
+        </VTI>
+      </VTIs>
       <SPDs/>
     </Swanctl>
     <OpenVPNExport version="0.0.1">
@@ -854,60 +935,63 @@
       <Lvtemplate version="0.0.1">
         <templates/>
       </Lvtemplate>
-      <Alias version="1.0.1">
+      <Alias version="1.0.1" persisted_at="1758279354.86">
         <geoip>
           <url/>
         </geoip>
         <aliases>
-          <alias uuid="58eb3f26-efff-4010-8fe1-4c10147e4a2c">
+          <alias uuid="0fcf86bc-a99a-4e03-99d0-cd051945448d">
             <enabled>1</enabled>
             <name>site1</name>
             <type>network</type>
             <path_expression/>
             <proto/>
             <interface/>
-            <counters>1</counters>
+            <counters>0</counters>
             <updatefreq/>
             <content>10.1.0.0/16</content>
             <password/>
             <username/>
             <authtype/>
+            <expire/>
             <categories/>
             <description>site1</description>
           </alias>
-          <alias uuid="f76a2f65-d1e1-4ecb-b7fd-88fe9915ebc5">
+          <alias uuid="ed32f3c5-9974-4bc0-85e8-925f76372eb8">
             <enabled>1</enabled>
             <name>site2</name>
             <type>network</type>
             <path_expression/>
             <proto/>
             <interface/>
-            <counters>1</counters>
+            <counters>0</counters>
             <updatefreq/>
             <content>10.2.0.0/16</content>
             <password/>
             <username/>
             <authtype/>
+            <expire/>
             <categories/>
             <description>site2</description>
           </alias>
-          <alias uuid="16b26df3-8a14-4f3c-bfa2-de8d6389cf1d">
+          <alias uuid="fab8549e-6bf2-4fba-8556-5ef990203c88">
             <enabled>1</enabled>
             <name>s1spoke</name>
             <type>network</type>
             <path_expression/>
             <proto/>
             <interface/>
-            <counters>1</counters>
+            <counters>0</counters>
             <updatefreq/>
             <content>10.11.0.0/16</content>
             <password/>
             <username/>
             <authtype/>
+            <expire/>
             <categories/>
             <description>s1spoke</description>
           </alias>
-          <alias uuid="05d078b1-1e02-45ef-9d2b-89469f8f7264">
+          <alias uuid="003d77ec-242d-4a1c-af92-d9c46f43d877">
             <enabled>1</enabled>
             <name>s2spoke</name>
             <type>network</type>
@@ -920,8 +1004,26 @@
             <password/>
             <username/>
             <authtype/>
+            <expire/>
             <categories/>
             <description>s2spoke</description>
+          </alias>
+          <alias uuid="f892683d-0873-4a03-9f82-d1b672a12259">
+            <enabled>1</enabled>
+            <name>vti</name>
+            <type>network</type>
+            <path_expression/>
+            <proto/>
+            <interface/>
+            <counters>0</counters>
+            <updatefreq/>
+            <content>192.168.1.1/30</content>
+            <password/>
+            <username/>
+            <authtype/>
+            <expire/>
+            <categories/>
+            <description>vti</description>
           </alias>
         </aliases>
       </Alias>
@@ -1002,9 +1104,10 @@
           <http_port>8000</http_port>
         </general>
       </ctrl_agent>
-      <dhcp4 version="1.0.3">
+      <dhcp4 version="1.0.4" persisted_at="1757852952.65">
         <general>
           <enabled>0</enabled>
+          <manual_config>0</manual_config>
           <interfaces/>
           <valid_lifetime>4000</valid_lifetime>
           <fwrules>1</fwrules>
@@ -1038,7 +1141,7 @@
         <ha_peers/>
       </dhcp6>
     </Kea>
-    <monit version="1.0.13">
+    <monit version="1.0.14" persisted_at="1757853254.27">
       <general>
         <enabled>0</enabled>
         <interval>120</interval>
@@ -1115,7 +1218,7 @@
         <type>custom</type>
         <pidfile/>
         <match/>
-        <path>/usr/local/opnsense/scripts/OPNsense/Monit/carp_status</path>
+        <path>/usr/local/opnsense/scripts/monit/carp_status.php</path>
         <timeout>300</timeout>
         <starttimeout>30</starttimeout>
         <address/>
@@ -1133,7 +1236,7 @@
         <type>custom</type>
         <pidfile/>
         <match/>
-        <path>/usr/local/opnsense/scripts/OPNsense/Monit/gateway_alert</path>
+        <path>/usr/local/opnsense/scripts/monit/gateway_alert.php</path>
         <timeout>300</timeout>
         <starttimeout>30</starttimeout>
         <address/>
@@ -1222,16 +1325,16 @@
         <path/>
       </test>
     </monit>
-    <Gateways version="1.0.0">
-      <gateway_item uuid="35e0dcbd-8b7f-43cc-84a8-6fa4ec97a1fc">
+    <Gateways version="1.0.0" persisted_at="1758274883.17">
+      <gateway_item uuid="dda41c26-f18a-41d7-bc19-ab379d829dba">
         <disabled>0</disabled>
-        <name>IPSEC_GW</name>
+        <name>IPSEC1_GW</name>
         <descr/>
         <interface>ipsec1</interface>
         <ipprotocol>inet</ipprotocol>
-        <gateway>10.116.0.2</gateway>
+        <gateway>192.168.1.2</gateway>
         <defaultgw>0</defaultgw>
-        <fargw>1</fargw>
+        <fargw>0</fargw>
         <monitor_disable>1</monitor_disable>
         <monitor_noroute>0</monitor_noroute>
         <monitor_killstates>0</monitor_killstates>
@@ -1362,7 +1465,7 @@
       <aliases/>
     </unboundplus>
     <quagga>
-      <bgp version="1.1.0">
+      <bgp version="1.1.1" persisted_at="1758278541.16">
         <enabled>1</enabled>
         <asnumber>65551</asnumber>
         <distance/>
@@ -1372,10 +1475,10 @@
         <logneighborchanges>0</logneighborchanges>
         <networks>10.1.0.0/16,10.11.0.0/16</networks>
         <neighbors>
-          <neighbor uuid="b2d5f110-a27f-4ba1-a7ca-06ff09ab9c96">
+          <neighbor uuid="7644ee7d-52f1-423d-92a6-579cc8afa53a">
             <enabled>1</enabled>
             <description>site2</description>
-            <address>10.116.0.2</address>
+            <address>192.168.1.2</address>
             <remote_as_mode/>
             <remoteas>65552</remoteas>
             <password/>
@@ -1462,16 +1565,16 @@
         <enabled>0</enabled>
         <neighbors/>
       </bfd>
-      <static version="1.0.0">
+      <static version="1.0.0" persisted_at="1758278625.58">
         <enabled>1</enabled>
         <routes>
-          <route uuid="573a4ea0-cb87-447d-9d4f-c162e40a1570">
+          <route uuid="8472798d-2587-4746-9534-7c3ab2773a76">
             <enabled>1</enabled>
             <network>10.1.0.0/16</network>
             <gateway>10.1.0.1</gateway>
             <interfacename>wan</interfacename>
           </route>
-          <route uuid="7ae3322f-2a3f-4946-a5ea-68c3931eb2ca">
+          <route uuid="a1abae06-e58a-4f8d-bac9-a7a08b80efc1">
             <enabled>1</enabled>
             <network>10.11.0.0/16</network>
             <gateway>10.1.0.1</gateway>
@@ -1504,14 +1607,14 @@
   <laggs version="1.0.0">
     <lagg/>
   </laggs>
-  <virtualip version="1.0.1">
-    <vip/>
-  </virtualip>
+  <virtualip version="1.0.1"/>
   <vlans version="1.0.0">
     <vlan/>
   </vlans>
-  <staticroutes version="1.0.0"/>
-  <bridges>
+  <staticroutes version="1.0.0">
+    <route/>
+  </staticroutes>
+  <bridges version="1.0.0">
     <bridged/>
   </bridges>
   <ppps>
@@ -1545,7 +1648,7 @@
     </system>
   </wizardtemp>
   <syslog/>
-  <dnsmasq version="1.0.5">
+  <dnsmasq version="1.0.8" persisted_at="1757853254.45">
     <enable>0</enable>
     <regdhcp>0</regdhcp>
     <regdhcpstatic>0</regdhcpstatic>
@@ -1553,6 +1656,7 @@
     <strict_order>0</strict_order>
     <domain_needed>0</domain_needed>
     <no_private_reverse>0</no_private_reverse>
+    <no_resolv>0</no_resolv>
     <log_queries>0</log_queries>
     <no_hosts>0</no_hosts>
     <strictbind>0</strictbind>
@@ -1570,6 +1674,7 @@
       <no_interface/>
       <fqdn>0</fqdn>
       <domain/>
+      <local>1</local>
       <lease_max/>
       <authoritative>0</authoritative>
       <default_fw_rules>1</default_fw_rules>
@@ -1580,47 +1685,6 @@
     <no_ident>1</no_ident>
   </dnsmasq>
   <ipsec>
-    <phase1>
-      <iketype>ikev2</iketype>
-      <interface>wan</interface>
-      <protocol>inet</protocol>
-      <myid_type>address</myid_type>
-      <myid_data>52.172.186.229</myid_data>
-      <peerid_type>address</peerid_type>
-      <peerid_data>52.172.202.98</peerid_data>
-      <encryption-algorithm>
-        <name>aes</name>
-        <keylen>256</keylen>
-      </encryption-algorithm>
-      <lifetime>28800</lifetime>
-      <pre-shared-key>secret12345</pre-shared-key>
-      <authentication_method>pre_shared_key</authentication_method>
-      <descr>site2</descr>
-      <nat_traversal>off</nat_traversal>
-      <auto>start</auto>
-      <dhgroup>14</dhgroup>
-      <hash-algorithm>sha256</hash-algorithm>
-      <noinstallpolicy>1</noinstallpolicy>
-      <private-key/>
-      <remote-gateway>52.172.202.98</remote-gateway>
-      <ikeid>1</ikeid>
-    </phase1>
-    <phase2>
-      <ikeid>1</ikeid>
-      <uniqid>683408c6cc836</uniqid>
-      <mode>route-based</mode>
-      <lifetime>3600</lifetime>
-      <descr>site2</descr>
-      <protocol>esp</protocol>
-      <tunnel_local>10.116.0.1</tunnel_local>
-      <tunnel_remote>10.116.0.2</tunnel_remote>
-      <encryption-algorithm-option>
-        <name>aes256</name>
-      </encryption-algorithm-option>
-      <hash-algorithm-option>hmac_sha256</hash-algorithm-option>
-      <reqid>1</reqid>
-    </phase2>
     <enable>1</enable>
-    <client/>
   </ipsec>
 </opnsense>

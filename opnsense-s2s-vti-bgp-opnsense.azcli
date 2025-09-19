@@ -8,7 +8,7 @@ site1_fw_subnet_name='fw'
 site1_fw_subnet_address='10.1.0.0/24'
 site1_vm_subnet_name='vm'
 site1_vm_subnet_address='10.1.1.0/24'
-site1_fw_vti_ip=10.116.0.1
+site1_fw_vti_ip=192.168.1.1
 site1_fw_asn=65551
 
 s1spoke_vnet_name=s1spoke
@@ -22,7 +22,7 @@ site2_fw_subnet_name='fw'
 site2_fw_subnet_address='10.2.0.0/24'
 site2_vm_subnet_name='vm'
 site2_vm_subnet_address='10.2.1.0/24'
-site2_fw_vti_ip=10.116.0.2
+site2_fw_vti_ip=192.168.1.2
 site2_fw_asn=65552
 
 s2spoke_vnet_name=s2spoke
@@ -138,6 +138,7 @@ az network route-table create -g $rg -n $site1_vnet_name -l $location --disable-
 az network route-table route create -g $rg -n to-s1spoke --address-prefix $s1spoke_vnet_address --next-hop-type virtualappliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_fw_lan_private_ip -o none
 az network route-table route create -g $rg -n to-site2 --address-prefix $site2_vnet_address --next-hop-type virtualappliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_fw_lan_private_ip -o none
 az network route-table route create -g $rg -n to-s2spoke --address-prefix $s2spoke_vnet_address --next-hop-type virtualappliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_fw_lan_private_ip -o none
+az network route-table route create -g $rg -n to-site1-vti --address-prefix ${site1_fw_vti_ip}/32 --next-hop-type virtualappliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_fw_lan_private_ip -o none
 az network route-table route create -g $rg -n to-site2-vti --address-prefix ${site2_fw_vti_ip}/32 --next-hop-type virtualappliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_fw_lan_private_ip -o none
 az network vnet subnet update -g $rg -n $site1_vm_subnet_name --vnet-name $site1_vnet_name --route-table $site1_vnet_name -o none
 
@@ -158,6 +159,7 @@ az network route-table route create -g $rg -n to-s2spoke --address-prefix $s2spo
 az network route-table route create -g $rg -n to-site1 --address-prefix $site1_vnet_address --next-hop-type virtualappliance --route-table-name $site2_vnet_name --next-hop-ip-address $site2_fw_lan_private_ip -o none
 az network route-table route create -g $rg -n to-s1spoke --address-prefix $s1spoke_vnet_address --next-hop-type virtualappliance --route-table-name $site2_vnet_name --next-hop-ip-address $site2_fw_lan_private_ip -o none
 az network route-table route create -g $rg -n to-site1-vti --address-prefix ${site1_fw_vti_ip}/32 --next-hop-type virtualappliance --route-table-name $site2_vnet_name --next-hop-ip-address $site2_fw_lan_private_ip -o none
+az network route-table route create -g $rg -n to-site2-vti --address-prefix ${site2_fw_vti_ip}/32 --next-hop-type virtualappliance --route-table-name $site2_vnet_name --next-hop-ip-address $site2_fw_lan_private_ip -o none
 az network vnet subnet update -g $rg -n $site2_vm_subnet_name --vnet-name $site2_vnet_name --route-table $site2_vnet_name -o none
 
 # s2spoke route table
@@ -173,10 +175,10 @@ az network vnet subnet update -g $rg -n $s2spoke_vm_subnet_name --vnet-name $s2s
 # Download config files
 site1_config=~/site1_vti_bgp_config.xml
 curl -o $site1_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-vti-bgp-site1.xml
-sed -i -e "s/52\.172\.186\.229/${site1_fw_public_ip}/g" -e "s/52\.172\.202\.98/${site2_fw_public_ip}/g" $site1_config
+sed -i -e "s/4\.188\.249\.194/${site1_fw_public_ip}/g" -e "s/74\.225\.146\.52/${site2_fw_public_ip}/g" $site1_config
 site2_config=~/site2_vti_bgp_config.xml
 curl -o $site2_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-vti-bgp-site2.xml
-sed -i -e "s/52\.172\.186\.229/${site1_fw_public_ip}/g" -e "s/52\.172\.202\.98/${site2_fw_public_ip}/g" $site2_config
+sed -i -e "s/4\.188\.249\.194/${site1_fw_public_ip}/g" -e "s/74\.225\.146\.52/${site2_fw_public_ip}/g" $site2_config
 
 # Copying config files to site1 pfsense
 echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
@@ -187,7 +189,7 @@ ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "sudo reboot"
 
 # Copying config files to site2 pfsense
 echo -e "\e[1;36mCopying configuration files to $site2_vnet_name-fw and installing opnsense firewall...\e[0m"
-scp -o StrictHostKeyChecking=no ~/.ssh/* root@$site1_fw_public_ip:/root/.ssh/
+scp -o StrictHostKeyChecking=no ~/.ssh/* root@$site2_fw_public_ip:/root/.ssh/
 scp -o StrictHostKeyChecking=no $site2_config root@$site2_fw_public_ip:/conf/config.xml
 echo -e "\e[1;36mRebooting $site2_vnet_name-fw after importing the config file...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$site2_fw_public_ip "sudo reboot"
@@ -197,7 +199,7 @@ rm $site1_config $site2_config
 
 # wait for pfsense to boot up
 echo -e "\e[1;36mWaiting for pfsense to boot up...\e[0m"
-sleep 120
+sleep 30
 
 echo -e "\e[1;36mChecking connectivity from $site1_vnet_name-fw to rest of network...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ping -c 3 10.116.0.2 && ping -c 3 $site2_fw_wan_private_ip && ping -c 3 $site2_fw_lan_private_ip && ping -c 3 $site2_vm_ip && ping -c 3 $s1spoke_vm_ip && ping -c 3 $s2spoke_vm_ip"
@@ -219,9 +221,9 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ss
 echo -e "\e[1;36mChecking connectivity from $s2spoke_vnet_name to rest of network...\e[0m"
 ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$s2spoke_vm_ip 'ping -c 3 $site1_vm_ip && ping -c 3 $site2_vm_ip && ping -c 3 $s1spoke_vm_ip'"
 
-# Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s-route.html but take the following into account:
-# 1. In phase 1, set 'My identifier'/'Peer identifier' to IP address and put the public ip address of each opnsense firewall
-# 2. in phase 2, set the 'local network'/'remote network' to network and put the $site1_vnet_address and $site2_vnet_address
-# 3. In the IPSec firewall rule, set the 'destination' to 'Single host or Network' and put the local site vnet address space
+# Follow this documentation to configure opnsense ipsec s2s vpn between the two sites: https://docs.opnsense.org/manual/how-tos/ipsec-s2s-conn-route.html but take the following into account:
+# 1. While creating the Virtual Tunnel Interfaces (VTI) set the local address to the private IP address on the WAN interface of the opnsense and remote address is the public ip address of the other opnsense
+# 2. In General Settings set 'Local addresses' to the private IP address on the WAN interface of the opnsense while 'Remote addresses' should be set to the Public IP address of the other opnsense
+
 
 # az group delete -n $rg -y --no-wait
