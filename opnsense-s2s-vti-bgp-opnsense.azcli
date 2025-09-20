@@ -92,12 +92,11 @@ az vm boot-diagnostics enable -g $rg -n $site2_vnet_name-fw -o none
 # create s1spoke vnet
 echo -e "\e[1;36mCreating $s1spoke_vnet_name VNet...\e[0m"
 az network vnet create -g $rg -n $s1spoke_vnet_name -l $location --address-prefixes $s1spoke_vnet_address --subnet-name $s1spoke_vm_subnet_name --subnet-prefixes $s1spoke_vm_subnet_address -o none
-s1spoke_vm_ip=$(az network nic show -g $rg -n $s1spoke_vnet_name --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $s1spoke_vnet_name vm private ip: $s1spoke_vm_ip
 
 # create s2spoke vnet
 echo -e "\e[1;36mCreating $s2spoke_vnet_name VNet...\e[0m"
 az network vnet create -g $rg -n $s2spoke_vnet_name -l $location --address-prefixes $s2spoke_vnet_address --subnet-name $s2spoke_vm_subnet_name --subnet-prefixes $s2spoke_vm_subnet_address -o none
-s2spoke_vm_ip=$(az network nic show -g $rg -n $s2spoke_vnet_name --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $s2spoke_vnet_name vm private ip: $s2spoke_vm_ip
+
 # site1 vm
 echo -e "\e[1;36mCreating $site1_vnet_name VM...\e[0m"
 az network nic create -g $rg -n "$site1_vnet_name" -l $location --vnet-name $site1_vnet_name --subnet $site1_vm_subnet_name -o none
