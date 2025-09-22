@@ -230,6 +230,10 @@ rm $site1_config $site2_config
 echo -e "\e[1;36mWaiting for pfsense to boot up...\e[0m"
 sleep 60
 
+##############
+# Diagnosisi #
+##############
+
 echo -e "\e[1;36mChecking connectivity from $site1_vnet_name-fw to rest of network...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ping -c 3 $site2_fw_vti_ip && ping -c 3 $site2_fw_wan_private_ip && ping -c 3 $site2_fw_lan_private_ip && ping -c 3 $site2_vm_ip && ping -c 3 $s1spoke_vm_ip && ping -c 3 $s2spoke_vm_ip"
 ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "vtysh -c 'show bgp summary' && vtysh -c 'show ip route' && vtysh -c 'show ip bgp'"

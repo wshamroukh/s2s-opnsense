@@ -354,6 +354,7 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$site2_gw_pu
 
 # clean up config files
 rm $psk_file $ipsec_file $ipsec_vti_file $frr_conf_file
+
 ##############
 # Diagnosisi #
 ##############

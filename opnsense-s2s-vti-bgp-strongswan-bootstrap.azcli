@@ -216,6 +216,7 @@ echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installi
 scp -o StrictHostKeyChecking=no $opnsense_init_file $config_file $admin_username@$site1_fw_public_ip:/home/$admin_username
 ssh -o StrictHostKeyChecking=no $admin_username@$site1_fw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
 
+rm $opnsense_init_file $config_file
 # wait for pfsense to boot up
 sleep 60
 
@@ -386,6 +387,7 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$site2_gw_pu
 
 # clean up config files
 rm $psk_file $ipsec_file $ipsec_vti_file $frr_conf_file
+
 ##############
 # Diagnosisi #
 ##############
