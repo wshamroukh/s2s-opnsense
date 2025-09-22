@@ -83,14 +83,10 @@ echo -e "\e[1;36mCreating $site1_vnet_name-fw VM...\e[0m"
 az network public-ip create -g $rg -n $site1_vnet_name-fw -l $location --allocation-method Static --sku Basic -o none
 az network nic create -g $rg -n $site1_vnet_name-fw-wan --subnet $site1_fw_subnet_name --vnet-name $site1_vnet_name --ip-forwarding true --private-ip-address 10.1.0.250 --public-ip-address $site1_vnet_name-fw -o none
 az network nic create -g $rg -n $site1_vnet_name-fw-lan --subnet $site1_vm_subnet_name --vnet-name $site1_vnet_name --ip-forwarding true --private-ip-address 10.1.1.250 -o none
-az vm create --name $site1_vnet_name-fw --resource-group $rg --nics $site1_vnet_name-fw-wan $site1_vnet_name-fw-lan --size Standard_B2als_v2 --attach-os-disk $diskId --os-type linux -o none
+az vm create --name $site1_vnet_name-fw --resource-group $rg --nics $site1_vnet_name-fw-wan $site1_vnet_name-fw-lan --size Standard_B2als_v2 --attach-os-disk $diskId --os-type linux --no-wait -o none
 site1_fw_public_ip=$(az network public-ip show -g $rg -n $site1_vnet_name-fw --query 'ipAddress' -o tsv | tr -d '\r') && echo $site1_vnet_name-fw public ip: $site1_fw_public_ip
 site1_fw_wan_private_ip=$(az network nic show -g $rg -n $site1_vnet_name-fw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site1_vnet_name-fw wan private IP: $site1_fw_wan_private_ip
 site1_fw_lan_private_ip=$(az network nic show -g $rg -n $site1_vnet_name-fw-lan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site1_vnet_name-fw lan private IP: $site1_fw_lan_private_ip
-
-# opnsense vm boot diagnostics
-echo -e "\e[1;36mEnabling VM boot diagnostics for $site1_vnet_name-fw...\e[0m"
-az vm boot-diagnostics enable -g $rg -n $site1_vnet_name-fw -o none
 
 # site2 vnet
 echo -e "\e[1;36mCreating $site2_vnet_name VNet...\e[0m"
@@ -351,6 +347,7 @@ ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$site2_gw_pu
 echo -e "\e[1;36mChecking the status of S2S VPN between $site2_vnet_name-gw and $site1_vnet_name-gw VPN Gateways...\e[0m"
 ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$site2_gw_pubip "sudo ipsec status"
 ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$site2_gw_pubip "sudo ipsec statusall"
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$site2_gw_pubip "ip a"
 
 # clean up config files
 rm $psk_file $ipsec_file $ipsec_vti_file $frr_conf_file
