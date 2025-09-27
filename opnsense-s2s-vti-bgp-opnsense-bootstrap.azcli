@@ -38,7 +38,7 @@ myip=$(curl -s4 https://ifconfig.co/)
 cloud_init_file=cloud_init.sh
 cat <<EOF > $cloud_init_file
 #!/usr/local/bin/bash
-echo $admin_password | sudo -S pkg update
+sudo pkg update
 sudo pkg upgrade -y
 sed 's/#PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config > /tmp/sshd_config
 sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config_tmp
@@ -77,7 +77,7 @@ echo -e "\e[1;36mCreating $site1_vnet_name-fw VM...\e[0m"
 az network public-ip create -g $rg -n $site1_vnet_name-fw -l $location --allocation-method Static --sku Basic -o none
 az network nic create -g $rg -n $site1_vnet_name-fw-wan --subnet $site1_fw_subnet_name --vnet-name $site1_vnet_name --ip-forwarding true --private-ip-address 10.1.0.250 --public-ip-address $site1_vnet_name-fw -o none
 az network nic create -g $rg -n $site1_vnet_name-fw-lan --subnet $site1_vm_subnet_name --vnet-name $site1_vnet_name --ip-forwarding true --private-ip-address 10.1.1.250 -o none
-az vm create -g $rg -n $site1_vnet_name-fw --image $vm_image --nics $site1_vnet_name-fw-wan $site1_vnet_name-fw-lan --os-disk-name $site1_vnet_name-fw --size Standard_B2als_v2 --no-wait -o none
+az vm create -g $rg -n $site1_vnet_name-fw --image $vm_image --nics $site1_vnet_name-fw-wan $site1_vnet_name-fw-lan --os-disk-name $site1_vnet_name-fw --size Standard_B2als_v2  --admin-username $admin_username --generate-ssh-keys --no-wait -o none
 site1_fw_public_ip=$(az network public-ip show -g $rg -n $site1_vnet_name-fw --query 'ipAddress' -o tsv | tr -d '\r') && echo $site1_vnet_name-fw public ip: $site1_fw_public_ip
 site1_fw_wan_private_ip=$(az network nic show -g $rg -n $site1_vnet_name-fw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site1_vnet_name-fw wan private IP: $site1_fw_wan_private_ip
 site1_fw_lan_private_ip=$(az network nic show -g $rg -n $site1_vnet_name-fw-lan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site1_vnet_name-fw lan private IP: $site1_fw_lan_private_ip
@@ -92,7 +92,7 @@ echo -e "\e[1;36mCreating $site2_vnet_name-fw VM...\e[0m"
 az network public-ip create -g $rg -n $site2_vnet_name-fw -l $location --allocation-method Static --sku Basic -o none
 az network nic create -g $rg -n $site2_vnet_name-fw-wan --subnet $site2_fw_subnet_name --vnet-name $site2_vnet_name --ip-forwarding true --private-ip-address 10.2.0.250 --public-ip-address $site2_vnet_name-fw -o none
 az network nic create -g $rg -n $site2_vnet_name-fw-lan --subnet $site2_vm_subnet_name --vnet-name $site2_vnet_name --ip-forwarding true --private-ip-address 10.2.1.250 -o none
-az vm create -g $rg -n $site2_vnet_name-fw --image $vm_image --nics $site2_vnet_name-fw-wan $site2_vnet_name-fw-lan --os-disk-name $site2_vnet_name-fw --size Standard_B2als_v2 --no-wait -o none
+az vm create -g $rg -n $site2_vnet_name-fw --image $vm_image --nics $site2_vnet_name-fw-wan $site2_vnet_name-fw-lan --os-disk-name $site2_vnet_name-fw --size Standard_B2als_v2 --admin-username $admin_username --generate-ssh-keys --no-wait -o none
 site2_fw_public_ip=$(az network public-ip show -g $rg -n $site2_vnet_name-fw --query 'ipAddress' -o tsv | tr -d '\r') && echo $site2_vnet_name-fw public ip: $site2_fw_public_ip
 site2_fw_wan_private_ip=$(az network nic show -g $rg -n $site2_vnet_name-fw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site2_vnet_name-fw wan private IP: $site2_fw_wan_private_ip
 site2_fw_lan_private_ip=$(az network nic show -g $rg -n $site2_vnet_name-fw-lan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $site2_vnet_name-fw lan private IP: $site2_fw_lan_private_ip
