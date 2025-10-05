@@ -1,4 +1,4 @@
-rg=opnsense-s2s-az-vpngw
+rg=opnsense-s2s-az-vpngw-new
 location='centralindia'
 vhdUri=https://wadvhds.blob.core.windows.net/vhds/opnsense.vhd
 storageType=Premium_LRS
@@ -17,7 +17,7 @@ onprem1_fw_subnet_name='fw'
 onprem1_fw_subnet_address='10.2.0.0/24'
 onprem1_vm_subnet_name='vm'
 onprem1_vm_subnet_address='10.2.1.0/24'
-onprem1_fw_vti_ip=192.168.1.2
+onprem1_fw_vti_ip=192.168.1.1
 onprem1_fw_asn=65552
 
 vm_size=Standard_B2ats_v2
@@ -115,7 +115,7 @@ onprem1_fw_lan_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-fw-
 
 # onprem1 local network gateway
 echo -e "\e[1;36mDeploying $onprem1_vnet_name-fw local gateway resource...\e[0m"
-az network local-gateway create -g $rg -n $onprem1_vnet_name-fw -l $location --gateway-ip-address $onprem1_fw_public_ip --local-address-prefixes $onprem1_vnet_address -o none
+az network local-gateway create -g $rg -n $onprem1_vnet_name-fw -l $location --gateway-ip-address $onprem1_fw_public_ip --local-address-prefixes $onprem1_vnet_address $onprem1_fw_vti_ip/32 -o none
 
 # hub1 vm
 echo -e "\e[1;36mCreating $hub1_vnet_name VM...\e[0m"
@@ -154,6 +154,7 @@ az network vnet subnet update -g $rg -n $hub1_vm_subnet_name --vnet-name $hub1_v
 # creating VPN connection between hub1 vpn gw and onprem1 fw
 echo -e "\e[1;36mCreating $hub1_vnet_name-gw-to-$onprem1_vnet_name-fw-s2s-connection...\e[0m"
 az network vpn-connection create -g $rg -n $hub1_vnet_name-gw-to-$onprem1_vnet_name-fw-s2s-connection --vnet-gateway1 $hub1_vnet_name-gw --local-gateway2 $onprem1_vnet_name-fw --shared-key $psk -o none
+az network vpn-connection ipsec-policy add -g $rg --connection-name $hub1_vnet_name-gw-to-$onprem1_vnet_name-fw-s2s-connection --ike-encryption AES256 --ike-integrity SHA256 --dh-group DHGroup14 --ipsec-encryption AES256 --ipsec-integrity SHA256 --pfs-group None --sa-lifetime 27000 --sa-max-size 102400000 -o none
 
 # Download config files
 onprem1_config=~/site1_vti_bgp_config.xml
@@ -166,3 +167,12 @@ scp -o StrictHostKeyChecking=no ~/.ssh/* root@$onprem1_fw_public_ip:/root/.ssh/
 scp -o StrictHostKeyChecking=no $onprem1_config root@$onprem1_fw_public_ip:/conf/config.xml
 echo -e "\e[1;36mRebooting $onprem1_vnet_name-fw after importing the config file...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "sudo reboot"
+
+echo -e "\e[1;36mChecking connectivity from $onprem1_vnet_name-fw to rest of network...\e[0m"
+ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "ping -c 3 $hub1_vm_ip"
+
+echo -e "\e[1;36mChecking connectivity from $hub1_vnet_name to rest of network...\e[0m"
+ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$hub1_vm_ip 'ping -c 3 $onprem1_vm_ip && ping -c 3 $onprem1_fw_lan_private_ip'"
+
+echo -e "\e[1;36mChecking connectivity from $onprem1_vnet_name to rest of network...\e[0m"
+ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$onprem1_vm_ip 'ping -c 3 $hub1_vm_ip && ping -c 3 $onprem1_fw_lan_private_ip'"
