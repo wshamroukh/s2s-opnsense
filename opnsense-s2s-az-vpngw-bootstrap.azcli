@@ -1,7 +1,7 @@
-rg=opnsense-s2s-az-vpngw
+rg=opnsense-s2s-az-vpngw-bootstrap
 location='centralindia'
-vhdUri=https://wadvhds.blob.core.windows.net/vhds/opnsense.vhd
-storageType=Premium_LRS
+vm_image=$(az vm image list -l $location -p thefreebsdfoundation --sku 14_2-release-zfs --all --query "[?offer=='freebsd-14_2'].urn" -o tsv | tr -d '\r') && echo $vm_image
+az vm image terms accept --urn $vm_image -o none
 
 hub1_vnet_name=hub1
 hub1_vnet_address=10.1.0.0/16
@@ -49,9 +49,52 @@ function wait_until_finished {
      fi
 }
 
+cloud_init_file=cloud_init.sh
+cat <<EOF > $cloud_init_file
+#!/usr/local/bin/bash
+sudo pkg update
+sudo pkg upgrade -y
+sed 's/#PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config > /tmp/sshd_config
+sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config_tmp
+sudo mv /tmp/sshd_config /etc/ssh/sshd_config
+sudo /etc/rc.d/sshd restart
+fetch https://raw.githubusercontent.com/opnsense/update/master/src/bootstrap/opnsense-bootstrap.sh.in
+sed 's/reboot/#reboot/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
+mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
+sed 's/set -e/#set -e/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
+mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
+sudo chmod +x opnsense-bootstrap.sh.in
+sudo sh ~/opnsense-bootstrap.sh.in -y -r 25.7
+sudo cp ~/config.xml /usr/local/etc/config.xml
+sudo pkg update 
+sudo pkg upgrade -y
+sudo pkg install -y bash git py311-setuptools-63.1.0_3
+sudo ln -s /usr/local/bin/python3.11 /usr/local/bin/python
+git -c http.sslVerify=false clone https://github.com/Azure/WALinuxAgent.git
+cd ~/WALinuxAgent/
+git checkout v2.13.1.1
+sudo python setup.py install --register-service --force
+sudo reboot
+EOF
+
 # create resource group
 echo -e "\e[1;36mCreating $rg resource group...\e[0m"
 az group create -l $location -n $rg -o none
+
+# onprem1 vnet
+echo -e "\e[1;36mCreating $onprem1_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $onprem1_vnet_name -l $location --address-prefixes $onprem1_vnet_address --subnet-name $onprem1_vm_subnet_name --subnet-prefixes $onprem1_vm_subnet_address -o none
+az network vnet subnet create -g $rg -n $onprem1_fw_subnet_name --address-prefixes $onprem1_fw_subnet_address --vnet-name $onprem1_vnet_name -o none
+
+# Create onprem1 opnsense VM 
+echo -e "\e[1;36mCreating $onprem1_vnet_name-fw VM...\e[0m"
+az network public-ip create -g $rg -n $onprem1_vnet_name-fw -l $location --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n $onprem1_vnet_name-fw-wan --subnet $onprem1_fw_subnet_name --vnet-name $onprem1_vnet_name --ip-forwarding true --private-ip-address 10.2.0.250 --public-ip-address $onprem1_vnet_name-fw -o none
+az network nic create -g $rg -n $onprem1_vnet_name-fw-lan --subnet $onprem1_vm_subnet_name --vnet-name $onprem1_vnet_name --ip-forwarding true --private-ip-address 10.2.1.250 -o none
+az vm create -g $rg -n $onprem1_vnet_name-fw --image $vm_image --nics $onprem1_vnet_name-fw-wan $onprem1_vnet_name-fw-lan --os-disk-name $onprem1_vnet_name-fw --size Standard_B2als_v2  --admin-username $admin_username --generate-ssh-keys --no-wait -o none
+onprem1_fw_public_ip=$(az network public-ip show -g $rg -n $onprem1_vnet_name-fw --query 'ipAddress' -o tsv | tr -d '\r') && echo $onprem1_vnet_name-fw public ip: $onprem1_fw_public_ip
+onprem1_fw_wan_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-fw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-fw wan private IP: $onprem1_fw_wan_private_ip
+onprem1_fw_lan_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-fw-lan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-fw lan private IP: $onprem1_fw_lan_private_ip
 
 # hub1 vnet
 echo -e "\e[1;36mCreating $hub1_vnet_name VNet...\e[0m"
@@ -62,27 +105,6 @@ az network vnet subnet create -g $rg -n GatewaySubnet --address-prefixes $hub1_g
 echo -e "\e[1;36mDeploying $hub1_vnet_name-gw VPN Gateway...\e[0m"
 az network public-ip create -g $rg -n $hub1_vnet_name-gw0 -l $location --allocation-method Static -o none
 az network vnet-gateway create -g $rg -n $hub1_vnet_name-gw --public-ip-addresses $hub1_vnet_name-gw0 --vnet $hub1_vnet_name --sku VpnGw2 --gateway-type Vpn --vpn-type RouteBased --enable-private-ip true --no-wait
-
-# onprem1 vnet
-echo -e "\e[1;36mCreating $onprem1_vnet_name VNet...\e[0m"
-az network vnet create -g $rg -n $onprem1_vnet_name -l $location --address-prefixes $onprem1_vnet_address --subnet-name $onprem1_vm_subnet_name --subnet-prefixes $onprem1_vm_subnet_address -o none
-az network vnet subnet create -g $rg -n $onprem1_fw_subnet_name --address-prefixes $onprem1_fw_subnet_address --vnet-name $onprem1_vnet_name -o none
-
-# create a managed disk from a vhd
-echo -e "\e[1;36mCreating $onprem1_vnet_name-fw managed disk from a vhd...\e[0m"
-az disk create --resource-group $rg --name $onprem1_vnet_name-fw --sku $storageType --location $location --size-gb 30 --source $vhdUri --os-type Linux -o none
-#Get the resource Id of the managed disk
-diskId=$(az disk show --name $onprem1_vnet_name-fw --resource-group $rg --query [id] -o tsv | tr -d '\r')
-
-# Create opnsense VM by attaching existing managed disks as OS
-echo -e "\e[1;36mCreating $onprem1_vnet_name-fw VM...\e[0m"
-az network public-ip create -g $rg -n $onprem1_vnet_name-fw -l $location --allocation-method Static --sku Basic -o none
-az network nic create -g $rg -n $onprem1_vnet_name-fw-wan --subnet $onprem1_fw_subnet_name --vnet-name $onprem1_vnet_name --ip-forwarding true --private-ip-address 10.2.0.250 --public-ip-address $onprem1_vnet_name-fw -o none
-az network nic create -g $rg -n $onprem1_vnet_name-fw-lan --subnet $onprem1_vm_subnet_name --vnet-name $onprem1_vnet_name --ip-forwarding true --private-ip-address 10.2.1.250 -o none
-az vm create --name $onprem1_vnet_name-fw --resource-group $rg --nics $onprem1_vnet_name-fw-wan $onprem1_vnet_name-fw-lan --size Standard_B2als_v2 --attach-os-disk $diskId --os-type linux --no-wait -o none
-onprem1_fw_public_ip=$(az network public-ip show -g $rg -n $onprem1_vnet_name-fw --query 'ipAddress' -o tsv | tr -d '\r') && echo $onprem1_vnet_name-fw public ip: $onprem1_fw_public_ip
-onprem1_fw_wan_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-fw-wan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-fw wan private IP: $onprem1_fw_wan_private_ip
-onprem1_fw_lan_private_ip=$(az network nic show -g $rg -n $onprem1_vnet_name-fw-lan --query ipConfigurations[].privateIPAddress -o tsv | tr -d '\r') && echo $onprem1_vnet_name-fw lan private IP: $onprem1_fw_lan_private_ip
 
 # onprem1 local network gateway
 echo -e "\e[1;36mDeploying $onprem1_vnet_name-fw local gateway resource...\e[0m"
@@ -105,6 +127,29 @@ echo -e "\e[1;36mDeploying $onprem1_vnet_name route table and attaching it to $o
 az network route-table create -g $rg -n $onprem1_vnet_name -l $location -o none
 az network route-table route create -g $rg -n to-$hub1_vnet_name --address-prefix $hub1_vnet_address --next-hop-type VirtualAppliance --route-table-name $onprem1_vnet_name --next-hop-ip-address $onprem1_fw_lan_private_ip -o none
 az network vnet subnet update -g $rg -n $onprem1_vm_subnet_name --vnet-name $onprem1_vnet_name --route-table $onprem1_vnet_name -o none
+
+while true; do
+    state=$(az vm show -g $rg -n $onprem1_vnet_name-fw --query 'provisioningState' -o tsv | tr -d '\r')
+    echo "Current provisioning state: $state"
+
+    if [[ "$state" != "Creating" ]]; then
+        echo "Provisioning completed with state: $state"
+        break
+    fi
+
+    echo "VM is still being created... checking again in 5 seconds."
+    sleep 5
+done
+
+# donwload initial config for opnsense 
+config_file=~/config.xml
+curl -o $config_file https://raw.githubusercontent.com/wshamroukh/opnsense-azure-vm/refs/heads/main/config.xml
+
+# onprem1 opnsense bootstrap
+echo -e "\e[1;36mCopying configuration files to $onprem1_vnet_name-fw and installing opnsense firewall...\e[0m"
+scp -o StrictHostKeyChecking=no $cloud_init_file $config_file $admin_username@$onprem1_fw_public_ip:/home/$admin_username
+ssh -o StrictHostKeyChecking=no $admin_username@$onprem1_fw_public_ip "chmod +x /home/$admin_username/cloud_init.sh && sh /home/$admin_username/cloud_init.sh"
+rm $cloud_init_file $config_file
 
 # waiting on hub1 vpn gw to finish deployment
 hub1_gw_id=$(az network vnet-gateway show -g $rg -n $hub1_vnet_name-gw --query id -o tsv | tr -d '\r')
@@ -134,13 +179,14 @@ sed -i -e "s/13\.71\.38\.51/${onprem1_fw_public_ip}/g" -e "s/4\.247\.132\.11/${h
 
 # Copying config files to site1 pfsense
 echo -e "\e[1;36mCopying configuration files to $onprem1_vnet_name-fw and installing opnsense firewall...\e[0m"
+ssh-keygen -R $onprem1_fw_public_ip
 scp -o StrictHostKeyChecking=no ~/.ssh/* root@$onprem1_fw_public_ip:/root/.ssh/
 scp -o StrictHostKeyChecking=no $onprem1_config root@$onprem1_fw_public_ip:/conf/config.xml
 echo -e "\e[1;36mRebooting $onprem1_vnet_name-fw after importing the config file...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "sudo reboot"
 
 echo -e "\e[1;36mWaiting on $onprem1_vnet_name-fw to become up...\e[0m"
-sleep 60
+sleep 60 
 
 echo -e "\e[1;36mChecking connectivity from $onprem1_vnet_name-fw to rest of network...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "ping -c 3 $hub1_vm_ip"
