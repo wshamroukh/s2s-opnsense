@@ -196,3 +196,5 @@ ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "ssh -n -o BatchMode=
 
 echo -e "\e[1;36mChecking connectivity from $onprem1_vnet_name to rest of network...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$onprem1_fw_public_ip "ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no $admin_username@$onprem1_vm_ip 'ping -c 3 $hub1_vm_ip && ping -c 3 $onprem1_fw_lan_private_ip'"
+
+# az group delete -n $rg -y --no-wait
