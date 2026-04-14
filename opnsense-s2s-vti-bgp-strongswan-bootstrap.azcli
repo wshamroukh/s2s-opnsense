@@ -69,7 +69,7 @@ mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
 sed 's/set -e/#set -e/' opnsense-bootstrap.sh.in >opnsense-bootstrap.sh.in.tmp
 mv opnsense-bootstrap.sh.in.tmp opnsense-bootstrap.sh.in
 sudo chmod +x opnsense-bootstrap.sh.in
-sudo sh ~/opnsense-bootstrap.sh.in -y -r 25.7
+sudo sh ~/opnsense-bootstrap.sh.in -y -r 26.1
 sudo cp ~/config.xml /usr/local/etc/config.xml
 sudo pkg update 
 sudo pkg upgrade -y
@@ -341,7 +341,7 @@ sed -i "/\$site1_vnet_name-gw/ s//$site1_vnet_name-gw/" $ipsec_vti_file
 # frr.conf
 frr_conf_file=~/frr.conf
 cat <<EOF > $frr_conf_file
-frr version 10.4.0
+frr version 10.6.0
 frr defaults traditional
 hostname $site2_vnet_name-gw
 log syslog informational
