@@ -62,8 +62,8 @@ sed -i.bak 's/reboot/#reboot/' opnsense-bootstrap.sh.in
 sed -i.bak "s#pkg delete -fa#pkg query -e '%R != \"FreeBSD-base\"' '%n' | xargs -r pkg delete -fy#" opnsense-bootstrap.sh.in
 sudo chmod +x opnsense-bootstrap.sh.in
 sudo sh ~/opnsense-bootstrap.sh.in -y -r 26.7
-fetch https://raw.githubusercontent.com/wshamroukh/opnsense-azure-vm/refs/heads/main/config.xml
 sudo cp ~/config.xml /usr/local/etc/config.xml
+sudo cp ~/config.xml /conf/config.xml
 sudo pkg install -y bash git py313-setuptools-63.1.0_3
 git -c http.sslVerify=false clone https://github.com/Azure/WALinuxAgent.git
 cd ~/WALinuxAgent/
@@ -71,6 +71,7 @@ git checkout v2.15.0.1
 sudo python setup.py install --register-service --force
 waagent -register-service
 waagent start
+sudo pkg install -y os-frr
 sudo reboot
 EOF
 
@@ -81,6 +82,29 @@ function first_ip(){
     NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 1 ))`)
     NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
     echo "$NEXT_IP"
+}
+
+function wait_until_finished {
+     wait_interval=15
+     resource_id=$1
+     resource_name=$(echo $resource_id | cut -d/ -f 9)
+     echo -e "\e[1;35mWaiting for resource $resource_name to finish provisioning...\e[0m"
+     start_time=`date +%s`
+     state=$(az resource show --id $resource_id --query properties.provisioningState -o tsv | tr -d '\r')
+     until [[ "$state" == "Succeeded" ]] || [[ "$state" == "Failed" ]] || [[ -z "$state" ]]
+     do
+        sleep $wait_interval
+        state=$(az resource show --id $resource_id --query properties.provisioningState -o tsv | tr -d '\r')
+     done
+     if [[ -z "$state" ]]
+     then
+        echo -e "\e[1;31mSomething really bad happened...\e[0m"
+     else
+        run_time=$(expr `date +%s` - $start_time)
+        ((minutes=${run_time}/60))
+        ((seconds=${run_time}%60))
+        echo -e "\e[1;32mResource $resource_name provisioning state is $state, wait time $minutes minutes and $seconds seconds\e[0m"
+     fi
 }
 
 # create resource group
@@ -199,29 +223,21 @@ az network route-table route create -g $rg -n to-site1-vti --address-prefix ${si
 az network route-table route create -g $rg -n to-site2-vti --address-prefix ${site2_fw_vti_ip}/32 --next-hop-type virtualappliance --route-table-name $s2spoke_vnet_name --next-hop-ip-address $site2_gw_private_ip -o none
 az network vnet subnet update -g $rg -n $s2spoke_vm_subnet_name --vnet-name $s2spoke_vnet_name --route-table $s2spoke_vnet_name -o none
 
-# site1 opnsense bootstrap
-echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
-scp -o StrictHostKeyChecking=no $opnsense_init_file $admin_username@$site1_fw_public_ip:/home/$admin_username
-ssh -o StrictHostKeyChecking=no $admin_username@$site1_fw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
-
-rm $opnsense_init_file
-# wait for pfsense to boot up
-sleep 60
+site1_fw_id=$(az vm show -g $rg -n $site1_vnet_name-fw --query id -o tsv)
+wait_until_finished $site1_fw_id
 
 # Download config files
 site1_config=~/site1_vti_bgp_config.xml
 curl -o $site1_config https://raw.githubusercontent.com/wshamroukh/s2s-opnsense/refs/heads/main/opnsense-vti-bgp-site1.xml
 sed -i -e "s/4\.188\.249\.194/${site1_fw_public_ip}/g" -e "s/74\.225\.146\.52/${site2_gw_pubip}/g" $site1_config
-# Copying config files to site1 pfsense
+mv $site1_config ~/config.xml
+# site1 opnsense bootstrap
 echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
-ssh-keygen -R $site1_fw_public_ip
-scp -o StrictHostKeyChecking=no ~/.ssh/* root@$site1_fw_public_ip:/root/.ssh/
-scp -o StrictHostKeyChecking=no $site1_config root@$site1_fw_public_ip:/conf/config.xml
-echo -e "\e[1;36mEnable FRR (BGP) and then reboot $site1_vnet_name-fw after importing the config file...\e[0m"
-ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "pkg install -y os-frr && sudo reboot"
+scp -o StrictHostKeyChecking=no $opnsense_init_file ~/config.xml $admin_username@$site1_fw_public_ip:/home/$admin_username
+ssh -o StrictHostKeyChecking=no $admin_username@$site1_fw_public_ip "chmod +x /home/$admin_username/opnsense_init.sh && sh /home/$admin_username/opnsense_init.sh"
 
 # clean up config files
-rm $site2_init_file $site1_config
+rm $site2_init_file ~/config.xml $opnsense_init_file
 
 ####################
 # site2 VPN Config #
@@ -380,6 +396,7 @@ rm $psk_file $ipsec_file $ipsec_vti_file $frr_conf_file
 # Diagnosisi #
 ##############
 
+ssh-keygen -R $site1_fw_public_ip
 echo -e "\e[1;36mChecking connectivity from $site1_vnet_name-fw to $site2_vnet_name network...\e[0m"
 ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "ping -c 3 $site2_fw_vti_ip && ping -c 3 $site2_gw_private_ip && ping -c 3 $site2_vm_ip && ping -c 3 $s1spoke_vm_ip && ping -c 3 $s2spoke_vm_ip"
 ssh -o StrictHostKeyChecking=no root@$site1_fw_public_ip "vtysh -c 'show bgp summary' && vtysh -c 'show ip route' && vtysh -c 'show ip bgp'"
