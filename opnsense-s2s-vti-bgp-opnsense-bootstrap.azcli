@@ -55,6 +55,29 @@ waagent start
 sudo reboot
 EOF
 
+function wait_until_finished {
+     wait_interval=15
+     resource_id=$1
+     resource_name=$(echo $resource_id | cut -d/ -f 9)
+     echo -e "\e[1;35mWaiting for resource $resource_name to finish provisioning...\e[0m"
+     start_time=`date +%s`
+     state=$(az resource show --id $resource_id --query properties.provisioningState -o tsv | tr -d '\r')
+     until [[ "$state" == "Succeeded" ]] || [[ "$state" == "Failed" ]] || [[ -z "$state" ]]
+     do
+        sleep $wait_interval
+        state=$(az resource show --id $resource_id --query properties.provisioningState -o tsv | tr -d '\r')
+     done
+     if [[ -z "$state" ]]
+     then
+        echo -e "\e[1;31mSomething really bad happened...\e[0m"
+     else
+        run_time=$(expr `date +%s` - $start_time)
+        ((minutes=${run_time}/60))
+        ((seconds=${run_time}%60))
+        echo -e "\e[1;32mResource $resource_name provisioning state is $state, wait time $minutes minutes and $seconds seconds\e[0m"
+     fi
+}
+
 # create resource group
 echo -e "\e[1;36mCreating $rg resource group...\e[0m"
 az group create -l $location -n $rg -o none
@@ -171,6 +194,9 @@ az network route-table route create -g $rg -n to-site1-vti --address-prefix ${si
 az network route-table route create -g $rg -n to-site2-vti --address-prefix ${site2_fw_vti_ip}/32 --next-hop-type virtualappliance --route-table-name $s2spoke_vnet_name --next-hop-ip-address $site2_fw_lan_private_ip -o none
 az network vnet subnet update -g $rg -n $s2spoke_vm_subnet_name --vnet-name $s2spoke_vnet_name --route-table $s2spoke_vnet_name -o none
 
+site1_fw_id=$(az vm show -g $rg -n $site1_vnet_name-fw --query id -o tsv)
+wait_until_finished $site1_fw_id
+
 # site1 opnsense bootstrap
 echo -e "\e[1;36mCopying configuration files to $site1_vnet_name-fw and installing opnsense firewall...\e[0m"
 scp -o StrictHostKeyChecking=no $cloud_init_file $admin_username@$site1_fw_public_ip:/home/$admin_username
@@ -217,6 +243,7 @@ rm $site1_config $site2_config
 # wait for pfsense to boot up
 echo -e "\e[1;36mWaiting for pfsense to boot up...\e[0m"
 sleep 60
+
 
 ##############
 # Diagnosisi #
